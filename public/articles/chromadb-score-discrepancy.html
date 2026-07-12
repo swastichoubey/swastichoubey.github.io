@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Chasing a Score Discrepancy Through Five Layers of ChromaDB — Astra</title>
+  <title>Chasing a Score Discrepancy Through Eight Layers of ChromaDB — Astra</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
@@ -475,7 +475,7 @@
     <div class="hero-gradient"></div>
     <div class="hero-content">
       <div class="hero-eyebrow">Reproducibility · Evaluation · ChromaDB</div>
-      <h1>Chasing a Score Discrepancy<br/>Through <em>Five Layers of ChromaDB</em></h1>
+      <h1>Chasing a Score Discrepancy<br/>Through <em>Eight Layers of ChromaDB</em></h1>
       <p class="hero-sub">Identical code, identical corpus, identical embeddings and two production environments that still disagreed on every confidence score..</p>
     </div>
   </section>
@@ -654,7 +654,7 @@ But the bug isn't really the point of this post. The point is what "same code" t
         <ul class="findings-list">
           <li><span class="finding-num">01</span><span class="finding-text">Same code, same corpus, same embedding model, shared environment produced scores <strong>~2–4x higher</strong> on out-of-domain queries.</span></li>
           <li><span class="finding-num">02</span><span class="finding-text">The obvious hypothesis — Rust rewrite changed the distance-to-similarity formula — was disproven directly, not assumed away.</span></li>
-          <li><span class="finding-num">03</span><span class="finding-text">Five layers tested and eliminated: raw distance, default space, formula selection, formula implementation, embedding output.</span></li>
+          <li><span class="finding-num">03</span><span class="finding-text">Eight layers tested and eliminated: raw distance, cosine distance, langchain-chroma version, the full wrapper, embedding hash, default space, formula selection, formula implementation.</span></li>
           <li><span class="finding-num">04</span><span class="finding-text">Embedding space verified pixel-identical between environments via direct diff, not visual inspection.</span></li>
           <li><span class="finding-num">05</span><span class="finding-text">Residual cause is most likely HNSW index-construction variance at real corpus scale — untested, honestly flagged as open.</span></li>
           <li><span class="finding-num">06</span><span class="finding-text">Practical takeaway: re-validate thresholds on every environment change, not just every code change.</span></li>
