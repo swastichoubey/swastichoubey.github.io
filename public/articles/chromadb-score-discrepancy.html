@@ -516,7 +516,7 @@
       <div class="article-body">
 
         <!-- INTRO -->
-        <p>This is the technical follow-up to <a href="https://swastiichoubey.github.io/blogs/emb-eval.html">an earlier post</a> on choosing an embedding model for a telephony retrieval system. That post covers how I landed on <strong>static-similarity-mrl-multilingual-v1</strong> after comparing it against MPNet and a few other candidates. This one covers what happened after I moved that setup from my local notebook to a shared environment — and the five-layer elimination chain it took to understand why the numbers changed.</p>
+        <p>This is the technical follow-up to <a href="https://swastiichoubey.github.io/blogs/emb-eval.html">an earlier post</a> on choosing an embedding model for a telephony retrieval system. That post covers how I landed on <strong>static-similarity-mrl-multilingual-v1</strong> after comparing it against MPNet and a few other candidates. This one covers what happened after I moved that setup from my local notebook to a shared environment — and the eight-layer elimination chain it took to understand why the numbers changed.</p>
         <p>A couple months back, I was called to take a look at the RAG documents for a telephony use case because the team was struggling with getting the right responses among a myriad of other problems. Once I got access to the shared Jupyter notebook, I took a look at the corpus of a measly 28 documents and set about doing the following:
 <ul><li>Ensuring each document has a single, distinct intent</li>
 <li>Filler words are included in example queries</li>

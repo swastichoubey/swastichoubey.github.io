@@ -2,7 +2,7 @@
 
 export const ABOUT = {
   name: "Swasti Choubey",
-  tagline: "Researcher & builder at the intersection of AI systems and the humans who build and use them.",
+  tagline: "I think interpretability is the most critical unsolved problem in AI safety because you can't align what you can't understand, evaluate what you can't observe, or oversee what you can't interpret.",
   bio: [
     "I'm transitioning from production AI into empirical alignment research. My hands-on work in RAG systems, embedding evaluation, and AI security has sharpened a longstanding concern with how AI systems fail in ways that are hard to detect and easy to propagate.",
     "Research interests: evaluation reliability, information provenance, and interpretability — three angles on the same underlying problem of verifying rather than assuming a system does what we think it does.",
