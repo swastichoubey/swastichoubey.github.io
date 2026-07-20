@@ -98,7 +98,7 @@ export const blogData = {
   tags: ["Evals", "RAG", "Research"],
   date: "2026-07",
   readTime: 10,
-  publishedAt: { html: "public\articles\chromadb-score-discrepancy.html" },
+  publishedAt: { html: "/articles/chromadb-score-discrepancy.html" },
   featured: true,
   draft: false,
 },
