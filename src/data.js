@@ -26,7 +26,7 @@ export const blogData = {
       date: "2026-02",
       readTime: 5,
       publishedAt: null,
-      featured: true,
+      featured: false,
       draft: false,
     },
     {
@@ -34,8 +34,8 @@ export const blogData = {
       type: "exploratory",
       title: "Model Collapse & Synthetic Data",
       excerpt: "What happens when models train on their own outputs recursively — a deep dive into the collapse phenomenon and mitigation strategies.",
-      tags: ["AI Safety", "Training", "Information Provenance"],
-      date: "2025-11",
+      tags: ["AI Safety", "Training", "Data Provenance"],
+      date: "2026-08",
       readTime: 8,
       publishedAt: null,
       featured: true,
@@ -86,7 +86,7 @@ export const blogData = {
   date: "2026-06",
   readTime: 10,
   publishedAt:  {html: "/articles/emb-eval.html" },
-  featured: false,
+  featured: true,
   draft: false,
 },
  
@@ -150,7 +150,7 @@ export const blogData = {
   date: "2023-04",
   readTime: 6,
   publishedAt: null,
-  featured: false,
+  featured: true,
   draft: false,
 },
  

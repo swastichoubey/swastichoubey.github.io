@@ -65,6 +65,8 @@ export default function App() {
 
   const openReader = node => {
     if (!node || node.draft) return
+    console.log("publishedAt:", node.publishedAt)
+    console.log("ARTICLES has key:", !!ARTICLES[node.id])
     if (handleReadExternal(node)) return
     if (ARTICLES[node.id]) setReaderNodeId(node.id)
   }
