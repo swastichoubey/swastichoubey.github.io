@@ -63,7 +63,7 @@ export function SparkleButton({ children, onClick, href, download, target, rel, 
   if (href) {
   return (
     <div style={{ position: "relative", overflow: "visible" }}>
-      <a href={href} download={download} target={target} rel={rel}
+      <a href={href} download={download} target={target} rel={rel} onClick={onClick}
         className="sparkle-btn" style={baseStyle}>
         {content}
       </a>
