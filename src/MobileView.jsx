@@ -12,7 +12,7 @@ const ALL_TAGS  = [...new Set(
     .flatMap(n => n.tags || [])
 )].sort()
 
-const ALL_TYPES = ["exploratory", "implementation", "opinion", "project"]
+const ALL_TYPES = ["exploratory", "experimental", "opinion", "project"]
 
 function FilterPill({ label, color, active, onClick }) {
   return (

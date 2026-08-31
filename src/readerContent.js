@@ -7,7 +7,7 @@ export const ARTICLES = {
     title: "Distillation Attacks on LLMs",
     date: "2024-03",
     readTime: 12,
-    type: "implementation",
+    type: "opinion",
     blocks: [
       { type: "paragraph", text: "Model distillation is one of the most widely used techniques in production ML — compress a large expensive model into a smaller faster one that retains most of its capability. The safety community has spent considerable time thinking about what gets preserved in distillation. The answer, it turns out, includes things we'd rather not transfer." },
       { type: "heading", text: "What is a distillation attack?" },
@@ -83,7 +83,7 @@ export const ARTICLES = {
     title: "Choosing an Embedding Model for Telephony Retrieval",
     date: "2025-11",
     readTime: 10,
-    type: "exploratory",
+    type: "experimental",
     blocks: [
       { type: "paragraph", text: "I was working on an adaptive learning algorithm for my edtech platform when I was flagged by another team struggling with a retrieval system for structured Q&A content in a multilingual, latency-sensitive environment. The two biggest issues were inaccurate responses and high latency." },
       { type: "paragraph", text: "I started by inspecting the documents and optimising document structure — primarily assigning an intent to each document and ensuring no intent duplication. This improved accuracy a little: for 7/10 queries, the top recalled document was correct. But it wasn't enough to cleanly separate a good match threshold from a poor one, and speed was still a serious problem. That made me switch tactics and look at the embedding model instead." },
@@ -114,7 +114,7 @@ export const ARTICLES = {
     title: "Chasing a Score Discrepancy Through Five Layers of ChromaDB",
     date: "2026-07",
     readTime: 12,
-    type: "opinion",
+    type: "experimental",
     blocks: [
       { type: "paragraph", text: "This is the technical follow-up to an earlier post on choosing an embedding model for a telephony retrieval system. That post covers how I landed on static-similarity-mrl-multilingual-v1 after comparing it against MPNet and a few other candidates. This one covers what happened after I moved that setup from my local notebook to a shared environment — and the five-layer elimination chain it took to understand why the numbers changed." },
       { type: "heading", text: "The Discrepancy" },

@@ -16,7 +16,7 @@ const ALL_TAGS = [...new Set(
     .flatMap(n => n.tags || [])
 )].sort()
 
-const ALL_TYPES = ["exploratory", "implementation", "opinion", "project"]
+const ALL_TYPES = ["exploratory", "experimental", "opinion", "project"]
 
 // Static highlights list (featured + most recent, no dupes)
 const recent = [...blogData.nodes]

@@ -1,6 +1,6 @@
 import { THEME, TYPE_LABELS } from "./theme"
 
-const types = ["exploratory", "implementation", "opinion", "project"]
+const types = ["exploratory", "opinion", "experimental", "project"]
 
 export function Legend() {
   return (

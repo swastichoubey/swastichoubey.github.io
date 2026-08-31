@@ -3,8 +3,8 @@
 export const THEME = {
   // Article type colors — distinct, readable on near-black
   exploratory:     "#a78bfa",  // soft purple
-  implementation:  "#fbbf24",  // amber gold
-  opinion:         "#34d399",  // mint green
+  opinion:  "#fbbf24",  // amber gold
+  experimental:         "#34d399",  // mint green
   project:         "#f87171",  // soft red-coral
 
   // Supporting
@@ -26,7 +26,7 @@ export const THEME = {
 
 export const TYPE_LABELS = {
   exploratory:    "Exploratory",
-  implementation: "Implementation",
+  experimental:   "Experimental",
   opinion:        "Opinion",
   project:        "Project",
   about:          "About",

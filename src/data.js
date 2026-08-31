@@ -19,7 +19,7 @@ export const blogData = {
     // ── MAIN ARTICLES ────────────────────────────────────────────────────────
     {
       id: "distillation-attacks",
-      type: "implementation",
+      type: "opinion",
       title: "Distillation Attacks on LLMs",
       excerpt: "How model distillation can be exploited to transfer adversarial vulnerabilities across model families — and why this matters for AI safety.",
       tags: ["AI Safety", "ML Security"],
@@ -55,7 +55,7 @@ export const blogData = {
     },
     {
       id: "eval-reliability",
-      type: "opinion",
+      type: "experimental",
       title: "Evaluation Reliability in ML",
       excerpt: "A reproducibility failure found in ChromaDB prompted this investigation into how evaluation frameworks silently diverge across environments.",
       tags: ["Evals", "Research"],
@@ -79,7 +79,7 @@ export const blogData = {
     },
     {
   id: "emb-eval",
-  type: "exploratory",
+  type: "experimental",
   title: "Choosing an Embedding Model for Telephony Retrieval",
   excerpt: "Findings from a comparative evaluation of three models on a multilingual, latency-sensitive production system — and what MRL actually means in practice.",
   tags: ["RAG", "Evals", "Research"],
@@ -92,7 +92,7 @@ export const blogData = {
  
 {
   id: "chromadb-score-discrepancy",
-  type: "opinion",
+  type: "experimental",
   title: "Chasing a Score Discrepancy Through Eight Layers of ChromaDB",
   excerpt: "Identical code, identical corpus, identical embeddings — two production environments that still disagreed on every confidence score. An eight-layer elimination that ended without a clean answer.",
   tags: ["Evals", "RAG", "Research"],
