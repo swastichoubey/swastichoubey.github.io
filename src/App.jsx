@@ -7,6 +7,8 @@ import { AboutPanel } from "./AboutPanel"
 import { HighlightsPanel } from "./HighlightsPanel"
 import { Legend } from "./Legend"
 import { HowToPanel } from "./HowToPanel"
+import { GridToggle } from "./GridToggle"
+import { GridView } from "./GridView"
 import { Reader } from "./Reader"
 import { MobileView } from "./MobileView"
 import { blogData } from "./data"
@@ -47,6 +49,7 @@ export default function App() {
   const [filters,       setFilters]       = useState({ tags: new Set(), types: new Set() })
   const [aboutExpanded, setAboutExpanded] = useState(false)
   const [aboutView,     setAboutView]     = useState(null)
+  const [gridView,      setGridView]      = useState(false)
   const [readerNodeId,  setReaderNodeId]  = useState(() => {
     const id = decodeURIComponent(window.location.pathname.replace(/^\//, ""))
     return readableNode(id)?.id ?? null
@@ -166,51 +169,59 @@ export default function App() {
 
   return (
     <div style={{ width: "100vw", height: "100vh", background: "#05050f" }}>
-      <Canvas
-        camera={{ position: [4, 14, 28], fov: 52 }}
-        gl={{ antialias: true, alpha: false }}
-        onPointerMissed={handlePointerMissed}
-      >
-        <Suspense fallback={null}>
-          <Scene
-            selected={selected}
-            onSelect={handleSelect}
-            flyTarget={flyTarget}
-            filteredIds={filteredIds}
-            aboutExpanded={aboutExpanded}
-            aboutView={aboutView}
-            onSpokeClick={handleSpokeClick}
-          />
-        </Suspense>
-      </Canvas>
+      {gridView ? (
+        <GridView onRead={openReader} onClose={() => setGridView(false)} />
+      ) : (
+        <>
+          <Canvas
+            camera={{ position: [4, 14, 28], fov: 52 }}
+            gl={{ antialias: true, alpha: false }}
+            onPointerMissed={handlePointerMissed}
+          >
+            <Suspense fallback={null}>
+              <Scene
+                selected={selected}
+                onSelect={handleSelect}
+                flyTarget={flyTarget}
+                filteredIds={filteredIds}
+                aboutExpanded={aboutExpanded}
+                aboutView={aboutView}
+                onSpokeClick={handleSpokeClick}
+              />
+            </Suspense>
+          </Canvas>
 
-      <AnimatePresence>
-        {showAboutPanel && (
-          <AboutPanel
-            key="about-panel"
-            view={aboutView}
-            onViewChange={setAboutView}
-            onClose={handleCloseAbout}
-          />
-        )}
-        {showInfoPanel && (
-          <InfoPanel key="info-panel" node={selected} onClose={handleCloseInfo} onRead={openReader} />
-        )}
-        {showHighlights && (
-          <HighlightsPanel
-            key="highlights-panel"
-            onSelect={handleHighlightSelect}
-            onFlyTo={handleFlyTo}
-            onFilterChange={setFilters}
-            hidden={panelHidden}
-            onHide={() => setPanelHidden(p => !p)}
-          />
-        )}
-      </AnimatePresence>
+          <AnimatePresence>
+            {showAboutPanel && (
+              <AboutPanel
+                key="about-panel"
+                view={aboutView}
+                onViewChange={setAboutView}
+                onClose={handleCloseAbout}
+              />
+            )}
+            {showInfoPanel && (
+              <InfoPanel key="info-panel" node={selected} onClose={handleCloseInfo} onRead={openReader} />
+            )}
+            {showHighlights && (
+              <HighlightsPanel
+                key="highlights-panel"
+                onSelect={handleHighlightSelect}
+                onFlyTo={handleFlyTo}
+                onFilterChange={setFilters}
+                hidden={panelHidden}
+                onHide={() => setPanelHidden(p => !p)}
+              />
+            )}
+          </AnimatePresence>
 
-      <Legend />
-      <Astra />
+          <Legend />
+          <Astra />
+        </>
+      )}
+
       <HowToPanel />
+      <GridToggle active={gridView} onClick={() => setGridView(p => !p)} />
 
       {readerNodeId && <Reader nodeId={readerNodeId} onClose={handleCloseReader} />}
 

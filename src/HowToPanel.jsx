@@ -4,6 +4,7 @@ import { THEME } from "./theme"
 import { glassPanel, glassChip, SPRING } from "./glass"
 
 const STEPS = [
+  { icon: "▦", text: "Don't want to explore the planets? Click the grid icon, top right, for a flat list of every article." },
   { icon: "✋", text: "Drag to rotate, scroll to zoom. Click a node for details, click empty space to close it." },
   { icon: "◐", text: "Dot color marks the article type (see legend, top left). Dashed ring means draft." },
   { icon: "○", text: "Small moons around a node are references — click one for its source." },
@@ -27,7 +28,7 @@ export function HowToPanel() {
           onClick={() => setOpen(true)}
           title="How to navigate"
           style={{
-            position: "fixed", top: "24px", right: "24px",
+            position: "fixed", top: "24px", right: "62px",
             ...glassChip("#a78bfa"),
             display: "flex", alignItems: "center", gap: "6px",
             padding: "7px 12px", cursor: "pointer",
