@@ -28,7 +28,7 @@ export function HowToPanel() {
           onClick={() => setOpen(true)}
           title="How to navigate"
           style={{
-            position: "fixed", top: "24px", right: "62px",
+            position: "fixed", top: "24px", right: "74px",
             ...glassChip("#a78bfa"),
             display: "flex", alignItems: "center", gap: "6px",
             padding: "7px 12px", cursor: "pointer",

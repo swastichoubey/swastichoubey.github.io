@@ -14,13 +14,13 @@ export function GridToggle({ active, onClick }) {
       style={{
         position: "fixed", top: "24px", right: "24px",
         ...glassChip("#a78bfa", active),
-        width: "30px", height: "30px",
+        width: "38px", height: "38px",
         display: "flex", alignItems: "center", justifyContent: "center",
         cursor: "pointer",
         color: active ? "#a78bfa" : "#94a3b8",
-        fontSize: "13px",
+        fontSize: active ? "17px" : "18px",
         zIndex: 56, userSelect: "none",
       }}
-    >▦</motion.button>
+    >{active ? "🪐" : "▦"}</motion.button>
   )
 }
