@@ -45,6 +45,7 @@ function Controls({ settings, onChange, onClose, hidden, onToggleHide, isDark })
         animate={{ opacity: 1, x: 0 }}
         transition={SPRING.panel}
         onClick={onToggleHide}
+        title="Show controls"
         style={{
           position: "fixed", top: "50%", right: 0,
           translateY: "-50%",
@@ -107,11 +108,11 @@ function Controls({ settings, onChange, onClose, hidden, onToggleHide, isDark })
         <span style={{ fontSize: "8px", color: labelClr, letterSpacing: "0.1em", textTransform: "uppercase" }}>
           Reader
         </span>
-        <button onClick={onToggleHide} style={{
+        <button onClick={onToggleHide} title="Hide controls" style={{
           marginLeft: "auto", background: "none", border: "none",
           color: labelClr, cursor: "pointer", fontSize: "12px", padding: "2px",
         }}>–</button>
-        <button onClick={onClose} style={{
+        <button onClick={onClose} title="Close article" style={{
           background: "none", border: "none", marginLeft: "4px",
           color: labelClr, cursor: "pointer", fontSize: "13px", padding: "2px",
         }}>✕</button>
@@ -131,6 +132,29 @@ function Controls({ settings, onChange, onClose, hidden, onToggleHide, isDark })
   )
 }
 
+// ─── Inline markdown links — [text](url) → <a> ────────────────────────────────
+const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+
+function renderInline(text, linkColor) {
+  const parts = []
+  let lastIndex = 0
+  let match
+  let key = 0
+  LINK_PATTERN.lastIndex = 0
+  while ((match = LINK_PATTERN.exec(text)) !== null) {
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
+    parts.push(
+      <a key={key++} href={match[2]} target="_blank" rel="noopener noreferrer"
+        style={{ color: linkColor, textDecoration: "underline", textUnderlineOffset: "2px" }}>
+        {match[1]}
+      </a>
+    )
+    lastIndex = LINK_PATTERN.lastIndex
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex))
+  return parts
+}
+
 // ─── Content block renderer ───────────────────────────────────────────────────
 function Block({ block, fonts, sizes, isDark }) {
   const prose = isDark ? "#cbd5e1" : "#334155"
@@ -139,19 +163,20 @@ function Block({ block, fonts, sizes, isDark }) {
   const quoteBg  = isDark ? "#0f172a" : "#f8fafc"
   const quoteBdr = isDark ? "#1e293b" : "#e2e8f0"
   const codeBg   = isDark ? "#080c14" : "#f1f5f9"
+  const linkClr  = isDark ? "#a78bfa" : "#7c3aed"
 
   switch (block.type) {
     case "heading":
       return <h2 style={{ fontFamily: fonts.heading, fontSize: sizes.h2,
-        color: head, fontWeight: 600, margin: "2em 0 0.6em", lineHeight: 1.3 }}>{block.text}</h2>
+        color: head, fontWeight: 600, margin: "2em 0 0.6em", lineHeight: 1.3 }}>{renderInline(block.text, linkClr)}</h2>
 
     case "subheading":
       return <h3 style={{ fontFamily: fonts.body, fontSize: sizes.h3,
-        color: head, fontWeight: 500, margin: "1.6em 0 0.5em", lineHeight: 1.4 }}>{block.text}</h3>
+        color: head, fontWeight: 500, margin: "1.6em 0 0.5em", lineHeight: 1.4 }}>{renderInline(block.text, linkClr)}</h3>
 
     case "paragraph":
       return <p style={{ fontFamily: fonts.body, fontSize: sizes.body,
-        color: prose, lineHeight: 1.85, margin: "0 0 1.2em" }}>{block.text}</p>
+        color: prose, lineHeight: 1.85, margin: "0 0 1.2em" }}>{renderInline(block.text, linkClr)}</p>
 
     case "quote":
       return (
@@ -162,7 +187,7 @@ function Block({ block, fonts, sizes, isDark }) {
         }}>
           <p style={{ fontFamily: fonts.body, fontSize: sizes.body,
             color: isDark ? "#a78bfa" : "#7c3aed", lineHeight: 1.75,
-            margin: 0, fontStyle: "italic" }}>{block.text}</p>
+            margin: 0, fontStyle: "italic" }}>{renderInline(block.text, linkClr)}</p>
         </blockquote>
       )
 

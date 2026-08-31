@@ -26,6 +26,10 @@ for (const f of readdirSync(join(root, "assets"))) {
 execSync("npx vite build", { cwd: root, stdio: "inherit" })
 
 copyFileSync(join(root, "dist", "index.html"), join(root, "index.html"))
+// GitHub Pages has no server-side router, so a direct/shared link like
+// /model-collapse 404s unless 404.html serves the same app — App.jsx reads
+// the path itself and opens the matching article on load.
+copyFileSync(join(root, "dist", "index.html"), join(root, "404.html"))
 for (const f of readdirSync(join(root, "dist", "assets"))) {
   copyFileSync(join(root, "dist", "assets", f), join(root, "assets", f))
 }

@@ -33,6 +33,11 @@ function handleReadExternal(node) {
   return true
 }
 
+// Only nodes with real articles (not refs, not drafts) are valid URL targets.
+function readableNode(id) {
+  return blogData.nodes.find(n => n.id === id && n.type !== "ref" && !n.draft) || null
+}
+
 export default function App() {
   const [isMobile,      setIsMobile]      = useState(window.innerWidth < MOBILE_BREAKPOINT)
   const [selected,      setSelected]      = useState(null)
@@ -41,12 +46,25 @@ export default function App() {
   const [filters,       setFilters]       = useState({ tags: new Set(), types: new Set() })
   const [aboutExpanded, setAboutExpanded] = useState(false)
   const [aboutView,     setAboutView]     = useState(null)
-  const [readerNodeId,  setReaderNodeId]  = useState(null)
+  const [readerNodeId,  setReaderNodeId]  = useState(() => {
+    const id = decodeURIComponent(window.location.pathname.replace(/^\//, ""))
+    return readableNode(id)?.id ?? null
+  })
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     window.addEventListener("resize", onResize)
     return () => window.removeEventListener("resize", onResize)
+  }, [])
+
+  // Sync reader state with browser back/forward navigation.
+  useEffect(() => {
+    const onPopState = () => {
+      const id = decodeURIComponent(window.location.pathname.replace(/^\//, ""))
+      setReaderNodeId(readableNode(id)?.id ?? null)
+    }
+    window.addEventListener("popstate", onPopState)
+    return () => window.removeEventListener("popstate", onPopState)
   }, [])
 
   const hasActiveFilter = filters.tags.size > 0 || filters.types.size > 0
@@ -66,6 +84,9 @@ export default function App() {
     if (!node || node.draft) return
     if (handleReadExternal(node)) return
     setReaderNodeId(node.id)
+    if (window.location.pathname !== "/" + node.id) {
+      window.history.pushState({}, "", "/" + node.id)
+    }
   }
 
   const handleSelect = node => {
@@ -108,7 +129,12 @@ export default function App() {
     setAboutExpanded(false)
     setPanelHidden(false)
   }
-  const handleCloseReader = () => setReaderNodeId(null)
+  const handleCloseReader = () => {
+    setReaderNodeId(null)
+    if (window.location.pathname !== "/") {
+      window.history.pushState({}, "", "/")
+    }
+  }
 
   const handlePointerMissed = () => {
     if (selected) { setSelected(null); setPanelHidden(false) }

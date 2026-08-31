@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "node -e \"require('fs').copyFileSync('index.template.html','index.html')\"",
     "dev": "vite",
+    "prebuild": "node -e \"require('fs').copyFileSync('index.template.html','index.html')\"",
     "build": "vite build",
     "deploy": "node scripts/deploy.js",
     "lint": "eslint .",
