@@ -30,7 +30,6 @@ function FilterPill({ label, color, active, onClick }) {
 
 function ArticleCard({ node, onRead }) {
   const color = nodeColor(node)
-  const isDraft = node.draft
 
   return (
     <div style={{
@@ -39,7 +38,6 @@ function ArticleCard({ node, onRead }) {
       background: "#080812",
       padding: "16px",
       marginBottom: "10px",
-      opacity: isDraft ? 0.45 : 1,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: "8px" }}>
         <span style={{
@@ -50,7 +48,6 @@ function ArticleCard({ node, onRead }) {
           letterSpacing: "0.1em", textTransform: "uppercase" }}>
           {TYPE_LABELS[node.type]}
         </span>
-        {isDraft && <span style={{ fontSize: "9px", color: "#334155", marginLeft: "2px" }}>· draft</span>}
         {node.date && (
           <span style={{ marginLeft: "auto", fontSize: "9px", color: "#334155" }}>{node.date}</span>
         )}
@@ -78,28 +75,26 @@ function ArticleCard({ node, onRead }) {
         </div>
       )}
 
-      {!isDraft && (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {node.readTime && (
-            <span style={{ fontSize: "9px", color: "#334155",
-              fontFamily: "'DM Mono', monospace" }}>{node.readTime} min</span>
-          )}
-          <button onClick={() => onRead(node)} style={{
-            marginLeft: "auto",
-            padding: "7px 14px", borderRadius: "6px",
-            border: `1px solid ${color}44`,
-            background: `${color}14`, color,
-            fontSize: "10px", fontFamily: "'DM Mono', monospace",
-            letterSpacing: "0.06em", cursor: "pointer",
-            transition: "background 0.12s",
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = `${color}24`}
-            onMouseLeave={e => e.currentTarget.style.background = `${color}14`}
-          >
-            {node.publishedAt ? `Read on ${Object.keys(node.publishedAt)[0]}` : "Read →"}
-          </button>
-        </div>
-      )}
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {node.readTime && (
+          <span style={{ fontSize: "9px", color: "#334155",
+            fontFamily: "'DM Mono', monospace" }}>{node.readTime} min</span>
+        )}
+        <button onClick={() => onRead(node)} style={{
+          marginLeft: "auto",
+          padding: "7px 14px", borderRadius: "6px",
+          border: `1px solid ${color}44`,
+          background: `${color}14`, color,
+          fontSize: "10px", fontFamily: "'DM Mono', monospace",
+          letterSpacing: "0.06em", cursor: "pointer",
+          transition: "background 0.12s",
+        }}
+          onMouseEnter={e => e.currentTarget.style.background = `${color}24`}
+          onMouseLeave={e => e.currentTarget.style.background = `${color}14`}
+        >
+          {node.publishedAt ? `Read on ${Object.keys(node.publishedAt)[0]}` : "Read →"}
+        </button>
+      </div>
     </div>
   )
 }
@@ -110,17 +105,13 @@ export function MobileView({ onRead }) {
 
   const articles = useMemo(() => {
     return blogData.nodes
-      .filter(n => n.type !== "ref" && n.type !== "about")
+      .filter(n => n.type !== "ref" && n.type !== "about" && !n.draft)
       .filter(n => {
         const typeOk = activeTypes.size === 0 || activeTypes.has(n.type)
         const tagOk  = activeTags.size  === 0 || [...activeTags].every(t => n.tags?.includes(t))
         return typeOk && tagOk
       })
-      .sort((a, b) => {
-        if (a.draft && !b.draft) return 1
-        if (!a.draft && b.draft) return -1
-        return (b.date || "").localeCompare(a.date || "")
-      })
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
   }, [activeTags, activeTypes])
 
   const toggleTag  = t => setActiveTags(p  => { const n = new Set(p); n.has(t) ? n.delete(t) : n.add(t); return n })

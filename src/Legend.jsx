@@ -27,14 +27,6 @@ export function Legend() {
             </span>
           </div>
         ))}
-        <div style={{ display: "flex", alignItems: "center", gap: "7px", marginTop: "3px" }}>
-          <span style={{
-            width: "7px", height: "7px", borderRadius: "50%",
-            border: `1px dashed ${THEME.exploratory}55`,
-            flexShrink: 0,
-          }} />
-          <span style={{ fontSize: "9px", color: "#334155", letterSpacing: "0.08em" }}>Draft</span>
-        </div>
       </div>
 
       <div style={{ marginTop: "14px", fontSize: "9px", color: "#1e293b", letterSpacing: "0.06em" }}>

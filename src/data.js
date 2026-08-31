@@ -1,7 +1,8 @@
 // ─── BLOG DATA ───────────────────────────────────────────────────────────────
 // publishedAt: { platform: "url" } | null (null = native reader)
 // platform options: "substack" | "lesswrong" | "x" | null
-// draft: true = visible but dimmed, unclickable
+// draft: true = not yet published — hidden entirely from planets and grid,
+//        along with any ref moons that belong to it
 // featured: true = appears in highlights panel
 
 export const blogData = {
@@ -27,12 +28,12 @@ export const blogData = {
       readTime: 5,
       publishedAt: null,
       featured: false,
-      draft: false,
+      draft: true,
     },
     {
       id: "model-collapse",
       type: "exploratory",
-      title: "Model Collapse & Synthetic Data",
+      title: "Model Collapse Is A Misnomer",
       excerpt: "What happens when models train on their own outputs recursively — a deep dive into the collapse phenomenon and mitigation strategies.",
       tags: ["AI Safety", "Training", "Data Provenance"],
       date: "2026-08",
@@ -51,7 +52,7 @@ export const blogData = {
       readTime: 15,
       publishedAt: null,
       featured: false,
-      draft: false,
+      draft: true,
     },
     {
       id: "eval-reliability",
@@ -63,7 +64,7 @@ export const blogData = {
       readTime: 8,
       publishedAt: null,
       featured: false,
-      draft: false,
+      draft: true,
     },
     {
       id: "hci-safety",
@@ -365,4 +366,14 @@ export const blogData = {
 // Lava lamps → encryption / security cluster
 { source: "lava-lamps", target: "intel-sgx" },
   ],
+}
+
+// A node is visible once it's published — draft articles are hidden entirely,
+// and so are their ref moons (a moon can't orbit a planet nobody can see).
+export function isVisible(node) {
+  if (node.type === "ref") {
+    const parent = blogData.nodes.find(n => n.id === node.parent)
+    return !parent?.draft
+  }
+  return !node.draft
 }

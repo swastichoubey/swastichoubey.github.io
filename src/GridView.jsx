@@ -34,21 +34,19 @@ function FilterPill({ label, color, active, onClick }) {
 
 function ArticleCard({ node, onRead }) {
   const color = nodeColor(node)
-  const isDraft = node.draft
 
   return (
     <div
-      onClick={() => !isDraft && onRead(node)}
+      onClick={() => onRead(node)}
       style={{
         ...glassCard(color),
         padding: "16px",
-        opacity: isDraft ? 0.45 : 1,
-        cursor: isDraft ? "default" : "pointer",
+        cursor: "pointer",
         transition: `border-color 0.3s ${EASE_OUT}, background 0.3s ${EASE_OUT}, box-shadow 0.3s ${EASE_OUT}`,
         display: "flex", flexDirection: "column",
       }}
-      onMouseEnter={e => !isDraft && Object.assign(e.currentTarget.style, glassCardHover(color))}
-      onMouseLeave={e => !isDraft && Object.assign(e.currentTarget.style, glassCard(color))}
+      onMouseEnter={e => Object.assign(e.currentTarget.style, glassCardHover(color))}
+      onMouseLeave={e => Object.assign(e.currentTarget.style, glassCard(color))}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "7px", marginBottom: "9px" }}>
         <span style={{
@@ -58,7 +56,6 @@ function ArticleCard({ node, onRead }) {
         <span style={{ fontSize: "8px", color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase" }}>
           {TYPE_LABELS[node.type]}
         </span>
-        {isDraft && <span style={{ fontSize: "8px", color: "#334155" }}>· draft</span>}
         {node.date && <span style={{ marginLeft: "auto", fontSize: "8px", color: "#475569" }}>{node.date}</span>}
       </div>
 
@@ -84,7 +81,7 @@ function ArticleCard({ node, onRead }) {
         </div>
       )}
 
-      {!isDraft && node.readTime && (
+      {node.readTime && (
         <div style={{ fontSize: "9px", color: "#475569", fontFamily: "'DM Mono', monospace" }}>
           {node.readTime} min read
         </div>
@@ -99,17 +96,13 @@ export function GridView({ onRead, onClose }) {
 
   const articles = useMemo(() => {
     return blogData.nodes
-      .filter(n => n.type !== "ref" && n.type !== "about")
+      .filter(n => n.type !== "ref" && n.type !== "about" && !n.draft)
       .filter(n => {
         const typeOk = activeTypes.size === 0 || activeTypes.has(n.type)
         const tagOk  = activeTags.size  === 0 || [...activeTags].every(t => n.tags?.includes(t))
         return typeOk && tagOk
       })
-      .sort((a, b) => {
-        if (a.draft && !b.draft) return 1
-        if (!a.draft && b.draft) return -1
-        return (b.date || "").localeCompare(a.date || "")
-      })
+      .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
   }, [activeTags, activeTypes])
 
   const toggleTag  = t => setActiveTags(p  => { const n = new Set(p); n.has(t) ? n.delete(t) : n.add(t); return n })
