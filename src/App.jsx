@@ -6,6 +6,7 @@ import { InfoPanel } from "./InfoPanel"
 import { AboutPanel } from "./AboutPanel"
 import { HighlightsPanel } from "./HighlightsPanel"
 import { Legend } from "./Legend"
+import { HowToPanel } from "./HowToPanel"
 import { Reader } from "./Reader"
 import { MobileView } from "./MobileView"
 import { blogData } from "./data"
@@ -209,6 +210,7 @@ export default function App() {
 
       <Legend />
       <Astra />
+      <HowToPanel />
 
       {readerNodeId && <Reader nodeId={readerNodeId} onClose={handleCloseReader} />}
 
