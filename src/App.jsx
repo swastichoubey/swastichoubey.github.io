@@ -10,7 +10,6 @@ import { Reader } from "./Reader"
 import { MobileView } from "./MobileView"
 import { blogData } from "./data"
 import { Astra } from "./Astra"
-import { ARTICLES } from "./readerContent"
 
 const MOBILE_BREAKPOINT = 768
 
@@ -65,10 +64,8 @@ export default function App() {
 
   const openReader = node => {
     if (!node || node.draft) return
-    console.log("publishedAt:", node.publishedAt)
-    console.log("ARTICLES has key:", !!ARTICLES[node.id])
     if (handleReadExternal(node)) return
-    if (ARTICLES[node.id]) setReaderNodeId(node.id)
+    setReaderNodeId(node.id)
   }
 
   const handleSelect = node => {
