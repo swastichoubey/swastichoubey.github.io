@@ -31,10 +31,22 @@ export const blogData = {
       draft: true,
     },
     {
-      id: "model-collapse",
+      id: "cognitive-deficit-llms",
       type: "exploratory",
+      title: "Cognitive Deficit Due to Over-Reliance on LLMs",
+      excerpt: "A personal account of skill atrophy from LLM offloading, backed by the MIT 'Your Brain on ChatGPT' study and observations of teams adopting Cursor and Claude Code.",
+      tags: ["AI Safety", "Cognitive Science"],
+      date: "2026-04",
+      readTime: 10,
+      publishedAt: null,
+      featured: false,
+      draft: false,
+    },
+    {
+      id: "model-collapse",
+      type: "opinion",
       title: "Model Collapse Is A Misnomer",
-      excerpt: "What happens when models train on their own outputs recursively — a deep dive into the collapse phenomenon and mitigation strategies.",
+      excerpt: "What happens when models train on their own outputs recursively: a deep dive into the collapse phenomenon and mitigation strategies.",
       tags: ["AI Safety", "Training", "Data Provenance"],
       date: "2026-08",
       readTime: 8,
@@ -295,6 +307,15 @@ export const blogData = {
 
     },
     {
+      id: "mit-study",
+      type: "ref",
+      title: "Your Brain on ChatGPT (MIT Study)",
+      excerpt: "Study on cognitive skill atrophy from LLM offloading, with a focus on the impact of ChatGPT on writing and reasoning skills.",
+      tags: ["Paper"],
+      parent: "cognitive-deficit-llms",
+      url: "https://arxiv.org/abs/2506.08872",
+    },
+    {
       id: "embedding-evals",
       type: "ref",
       title: "Embedding Model Evaluation Study",
@@ -355,6 +376,7 @@ export const blogData = {
     { source: "model-collapse",       target: "eval-reliability" },
     { source: "rag-security",         target: "eval-reliability" },
     { source: "hci-safety",           target: "distillation-attacks" },
+    { source: "cognitive-deficit-llms", target: "mit-study" },
     { source: "emb-eval", target: "chromadb-score-discrepancy" },
   // chromadb finding connects to the broader eval-reliability article
   { source: "chromadb-score-discrepancy", target: "eval-reliability" },
