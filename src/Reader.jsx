@@ -197,6 +197,17 @@ function Block({ block, fonts, sizes, isDark }) {
         </blockquote>
       )
 
+    case "list":
+      return (
+        <ul style={{ margin: "0 0 1.2em", paddingLeft: "1.3em" }}>
+          {block.items.map((item, i) => (
+            <li key={i} style={{ fontFamily: fonts.body, fontSize: sizes.body,
+              color: prose, lineHeight: 1.85, marginBottom: "0.5em",
+              overflowWrap: "anywhere" }}>{renderInline(item, linkClr)}</li>
+          ))}
+        </ul>
+      )
+
     case "code":
       return (
         <pre style={{
