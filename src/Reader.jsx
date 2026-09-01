@@ -132,8 +132,8 @@ function Controls({ settings, onChange, onClose, hidden, onToggleHide, isDark })
   )
 }
 
-// ─── Inline markdown links — [text](url) → <a> ────────────────────────────────
-const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g
+// ─── Inline links — [text](url) markdown, or a bare http(s) URL → <a> ─────────
+const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s)]+)/g
 
 function renderInline(text, linkColor) {
   const parts = []
@@ -143,10 +143,12 @@ function renderInline(text, linkColor) {
   LINK_PATTERN.lastIndex = 0
   while ((match = LINK_PATTERN.exec(text)) !== null) {
     if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
+    const url   = match[2] || match[3]
+    const label = match[1] || match[3]
     parts.push(
-      <a key={key++} href={match[2]} target="_blank" rel="noopener noreferrer"
-        style={{ color: linkColor, textDecoration: "underline", textUnderlineOffset: "2px" }}>
-        {match[1]}
+      <a key={key++} href={url} target="_blank" rel="noopener noreferrer"
+        style={{ color: linkColor, textDecoration: "underline", textUnderlineOffset: "2px", overflowWrap: "anywhere" }}>
+        {label}
       </a>
     )
     lastIndex = LINK_PATTERN.lastIndex
@@ -168,15 +170,18 @@ function Block({ block, fonts, sizes, isDark }) {
   switch (block.type) {
     case "heading":
       return <h2 style={{ fontFamily: fonts.heading, fontSize: sizes.h2,
-        color: head, fontWeight: 600, margin: "2em 0 0.6em", lineHeight: 1.3 }}>{renderInline(block.text, linkClr)}</h2>
+        color: head, fontWeight: 600, margin: "2em 0 0.6em", lineHeight: 1.3,
+        overflowWrap: "anywhere" }}>{renderInline(block.text, linkClr)}</h2>
 
     case "subheading":
       return <h3 style={{ fontFamily: fonts.body, fontSize: sizes.h3,
-        color: head, fontWeight: 500, margin: "1.6em 0 0.5em", lineHeight: 1.4 }}>{renderInline(block.text, linkClr)}</h3>
+        color: head, fontWeight: 500, margin: "1.6em 0 0.5em", lineHeight: 1.4,
+        overflowWrap: "anywhere" }}>{renderInline(block.text, linkClr)}</h3>
 
     case "paragraph":
       return <p style={{ fontFamily: fonts.body, fontSize: sizes.body,
-        color: prose, lineHeight: 1.85, margin: "0 0 1.2em" }}>{renderInline(block.text, linkClr)}</p>
+        color: prose, lineHeight: 1.85, margin: "0 0 1.2em",
+        overflowWrap: "anywhere" }}>{renderInline(block.text, linkClr)}</p>
 
     case "quote":
       return (
@@ -187,7 +192,8 @@ function Block({ block, fonts, sizes, isDark }) {
         }}>
           <p style={{ fontFamily: fonts.body, fontSize: sizes.body,
             color: isDark ? "#a78bfa" : "#7c3aed", lineHeight: 1.75,
-            margin: 0, fontStyle: "italic" }}>{renderInline(block.text, linkClr)}</p>
+            margin: 0, fontStyle: "italic",
+            overflowWrap: "anywhere" }}>{renderInline(block.text, linkClr)}</p>
         </blockquote>
       )
 
