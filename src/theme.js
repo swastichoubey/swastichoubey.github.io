@@ -38,5 +38,6 @@ export const DESTINATION_ICONS = {
   lesswrong:  "LW",
   x:          "𝕏",
   native:     "↗",
-  html: "↗"
+  html: "↗",
+  github: "GH"
 }

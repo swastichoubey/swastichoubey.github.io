@@ -8,7 +8,7 @@ export const ABOUT = {
     "Research interests: evaluation reliability, information provenance, and interpretability — three angles on the same underlying problem of verifying rather than assuming a system does what we think it does.",
     "I became a PM because no other role lets me be insufferably curious, creative, research-driven, and inappropriately into organisation. My production background helps me understand what these failures look like when they touch real users.",
   ],
-  resumeUrl: "/Swasti_Choubey_AI_Safety_Research_Resume.pdf",
+  resumeUrl: "/Swasti_Choubey_Research_Resume.pdf",
 }
 
 export const EXPERIENCE = [
