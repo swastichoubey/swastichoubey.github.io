@@ -3,6 +3,7 @@ import { blogData } from "./data"
 import { THEME, TYPE_LABELS } from "./theme"
 import { motion } from "motion/react"
 import { glassPanel, glassCard, glassCardHover, SPRING, EASE_OUT } from "./glass"
+import { AboutCard } from "./AboutCard"
 
 function nodeColor(n) {
   return THEME[n.type] || "#94a3b8"
@@ -134,24 +135,36 @@ export function GridView({ onRead, onClose }) {
       <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "80px 40px 60px" }}>
         <div style={{ marginBottom: "28px" }}>
           <div style={{ fontSize: "11px", color: "#94a3b8", letterSpacing: "0.12em", marginBottom: "4px" }}>
-            SWASTI'S UNIVERSE
+            HYBRIDLOGS
           </div>
           <div style={{ fontSize: "9px", color: "#1e3a5f" }}>
             grid view · all articles
           </div>
         </div>
 
+        <AboutCard />
+
         {/* Filters */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "28px" }}>
-          {ALL_TYPES.map(t => (
-            <FilterPill key={t} label={TYPE_LABELS[t]} color={THEME[t]}
-              active={activeTypes.has(t)} onClick={() => toggleType(t)} />
-          ))}
-          <div style={{ width: "1px", background: "#1e293b", margin: "0 4px" }} />
-          {ALL_TAGS.map(t => (
-            <FilterPill key={t} label={t} color="#94a3b8"
-              active={activeTags.has(t)} onClick={() => toggleTag(t)} />
-          ))}
+        <div style={{ marginBottom: "28px" }}>
+          <div style={{ fontSize: "9px", color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "10px" }}>
+            Filter By
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+            <span style={{ fontSize: "9px", color: "#475569", flexShrink: 0 }}>Article Type:</span>
+            {ALL_TYPES.map(t => (
+              <FilterPill key={t} label={TYPE_LABELS[t]} color={THEME[t]}
+                active={activeTypes.has(t)} onClick={() => toggleType(t)} />
+            ))}
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+            <span style={{ fontSize: "9px", color: "#475569", flexShrink: 0 }}>Category:</span>
+            {ALL_TAGS.map(t => (
+              <FilterPill key={t} label={t} color="#94a3b8"
+                active={activeTags.has(t)} onClick={() => toggleTag(t)} />
+            ))}
+          </div>
         </div>
 
         {/* Grid */}

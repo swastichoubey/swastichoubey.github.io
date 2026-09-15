@@ -8,8 +8,13 @@ import { AboutSpokes } from "./AboutSpokes"
 import { blogData } from "./data"
 import { computeLayout } from "./layout"
 
-const DEFAULT_CAM_POS    = new THREE.Vector3(4, 14, 28)
-const DEFAULT_CAM_TARGET = new THREE.Vector3(0, -1, 0)
+// Camera position and its look-at target are shifted by the same amount on
+// X — a pure lateral pan, not a re-aim — so the universe renders shifted
+// left on screen (to sit more centered in the space left of the Highlights
+// panel) without introducing any perspective distortion.
+const HOME_SHIFT_X       = 4
+const DEFAULT_CAM_POS    = new THREE.Vector3(4 + HOME_SHIFT_X, 14, 28)
+const DEFAULT_CAM_TARGET = new THREE.Vector3(0 + HOME_SHIFT_X, -1, 0)
 
 // Scratch vectors for the per-frame fly-to destination (avoid per-frame allocs)
 const _flyTarget  = new THREE.Vector3()

@@ -1,5 +1,6 @@
 import { motion } from "motion/react"
 import { glassChip, SPRING } from "./glass"
+import { TOPBAR_TOP, TOPBAR_RIGHT, TOPBAR_SIZE, TOPBAR_RADIUS } from "./chrome"
 
 export function GridToggle({ active, onClick }) {
   return (
@@ -12,9 +13,10 @@ export function GridToggle({ active, onClick }) {
       onClick={onClick}
       title="Switch to grid view"
       style={{
-        position: "fixed", top: "24px", right: "24px",
+        position: "fixed", top: `${TOPBAR_TOP}px`, right: `${TOPBAR_RIGHT}px`,
         ...glassChip("#a78bfa", active),
-        width: "38px", height: "38px",
+        borderRadius: `${TOPBAR_RADIUS}px`,
+        width: `${TOPBAR_SIZE}px`, height: `${TOPBAR_SIZE}px`,
         display: "flex", alignItems: "center", justifyContent: "center",
         cursor: "pointer",
         color: active ? "#a78bfa" : "#94a3b8",

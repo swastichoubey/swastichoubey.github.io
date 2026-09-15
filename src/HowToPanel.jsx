@@ -2,6 +2,7 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { THEME } from "./theme"
 import { glassPanel, glassChip, SPRING } from "./glass"
+import { TOPBAR_TOP, TOPBAR_RIGHT, TOPBAR_GAP, TOPBAR_SIZE, TOPBAR_RADIUS } from "./chrome"
 
 const STEPS = [
   { icon: "▦", text: "Don't want to explore the planets? Click the grid icon, top right, for a flat list of every article." },
@@ -28,16 +29,19 @@ export function HowToPanel() {
           onClick={() => setOpen(true)}
           title="How to navigate"
           style={{
-            position: "fixed", top: "24px", right: "74px",
+            position: "fixed", top: `${TOPBAR_TOP}px`,
+            right: `${TOPBAR_RIGHT + TOPBAR_SIZE + TOPBAR_GAP}px`,
             ...glassChip("#a78bfa"),
-            display: "flex", alignItems: "center", gap: "6px",
-            padding: "7px 12px", cursor: "pointer",
+            borderRadius: `${TOPBAR_RADIUS}px`,
+            width: `${TOPBAR_SIZE}px`, height: `${TOPBAR_SIZE}px`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer",
             color: "#a78bfa", fontFamily: "'DM Mono', monospace",
-            fontSize: "9px", letterSpacing: "0.08em",
+            fontSize: "13px",
             zIndex: 55, userSelect: "none",
           }}
         >
-          <span style={{ fontSize: "10px" }}>?</span> how to navigate
+          ?
         </motion.button>
       )}
 
@@ -49,7 +53,7 @@ export function HowToPanel() {
             exit={{ opacity: 0, x: 20, scale: 0.98, transition: { duration: 0.16, ease: "easeIn" } }}
             transition={SPRING.panel}
             style={{
-              position: "fixed", top: "24px", right: "24px",
+              position: "fixed", top: `${TOPBAR_TOP}px`, right: `${TOPBAR_RIGHT}px`,
               width: "270px", maxHeight: "46vh", overflowY: "auto",
               ...glassPanel("#a78bfa"),
               padding: "16px", fontFamily: "'DM Mono', monospace",

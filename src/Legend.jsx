@@ -10,7 +10,7 @@ export function Legend() {
       zIndex: 10, userSelect: "none",
     }}>
       <div style={{ fontSize: "10px", color: "#94a3b8", letterSpacing: "0.1em", marginBottom: "10px" }}>
-        SWASTI'S UNIVERSE
+        HYBRIDLOGS
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>

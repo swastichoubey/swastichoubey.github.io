@@ -131,7 +131,7 @@ export function MobileView({ onRead }) {
       }}>
         <div style={{ fontSize: "11px", color: "#475569",
           letterSpacing: "0.12em", marginBottom: "2px" }}>
-          SWASTI'S UNIVERSE
+          HYBRIDLOGS
         </div>
         <div style={{ fontSize: "9px", color: "#1e3a5f" }}>
           mobile view · 3D experience on desktop

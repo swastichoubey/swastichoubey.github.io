@@ -2,11 +2,12 @@
 
 export const ABOUT = {
   name: "Swasti Choubey",
-  tagline: "I think interpretability is the most critical unsolved problem in AI safety because you can't align what you can't understand, evaluate what you can't observe, or oversee what you can't interpret.",
+  tagline: "I'm interested in how models behave when they know they're being evaluated, and what that does to how much we can trust the evaluations.",
   bio: [
-    "I'm transitioning from production AI into empirical alignment research. My hands-on work in RAG systems, embedding evaluation, and AI security has sharpened a longstanding concern with how AI systems fail in ways that are hard to detect and easy to propagate.",
-    "Research interests: evaluation reliability, information provenance, and interpretability — three angles on the same underlying problem of verifying rather than assuming a system does what we think it does.",
-    "I became a PM because no other role lets me be insufferably curious, creative, research-driven, and inappropriately into organisation. My production background helps me understand what these failures look like when they touch real users.",
+    "I spent the last two years as a Product Manager shipping ML products: RAG systems, embedding evaluation, AI security, and saw a lot of production failures. The thing is that a system passing the test you designed for it tells you very little. This continued to be my takeaway through the Bluedot Technical AI Safety course. How do models figure out what's going on around them, and what changes once they figure out they're being tested?",
+    "Right now I'm working on evaluation awareness because I strongly believe in the need for a science of evaluation. Alignment and interpretability are huge problems but I don't expect either to be solved soon. What I can do in the meantime is build better empirical evidence about how models actually behave, and eventually get at why, instead of just patching the symptoms.",
+    "I'm moving from product into research step by step. Tracing a ChromaDB retrieval discrepancy across environments, writing about model collapse and the proxy problem, working through ARENA and Mathematics for Machine Learning, reading alignment faking literature for a survey paper, and building a security scanner for RAG pipelines.",
+    "I got into this because I couldn't stop wondering how models think and how they get made to do harm. To be honest, I haven't enjoyed learning something this much in years. Now I'm trying to figure out which of these questions are worth the next ten years.",
   ],
   resumeUrl: "/Swasti_Choubey_Research_Resume.pdf",
 }
@@ -73,7 +74,7 @@ export const EDUCATION = [
   {
     degree: "ARENA Curriculum",
     institution: "Independent",
-    period: "12.07.2026 - present",
+    period: "15-09-2026 - present",
     notes: "Mechanistic interpretability track · In progress",
   },
 ]
@@ -105,11 +106,13 @@ export const WORK = [
   },
 ]
 
+// icon lookup now happens by label (see BrandIcon in AboutPanel.jsx), not a
+// stored field here.
 export const SOCIALS = [
-  { label: "GitHub",         handle: "swastichoubey",  url: "https://github.com/swastichoubey",                          icon: "GH" },
-  { label: "LinkedIn",       handle: "swasti-choubey", url: "https://linkedin.com/in/swasti-choubey",                    icon: "in" },
-  { label: "Substack",       handle: "hybridantic",    url: "https://substack.com/@hybridantic",                         icon: "S"  },
-  /* { label: "LessWrong",      handle: "Swastii",        url: "https://lesswrong.com/users/swastii",                       icon: "LW" },
-  { label: "Google Scholar", handle: "Swasti Choubey", url: "https://scholar.google.com/citations?user=swastichoubey",   icon: "GS" }, */
-  { label: "X",              handle: "@hybridantic",   url: "https://x.com/hybridantic",                                 icon: "𝕏"  },
+  { label: "GitHub",         handle: "swastichoubey",  url: "https://github.com/swastichoubey" },
+  { label: "LinkedIn",       handle: "swasti-choubey", url: "https://linkedin.com/in/swasti-choubey" },
+  { label: "Substack",       handle: "hybridantic",    url: "https://substack.com/@hybridantic" },
+  /* { label: "LessWrong",      handle: "Swastii",        url: "https://lesswrong.com/users/swastii" },
+  { label: "Google Scholar", handle: "Swasti Choubey", url: "https://scholar.google.com/citations?user=swastichoubey" }, */
+  { label: "X",              handle: "@hybridantic",   url: "https://x.com/hybridantic" },
 ]

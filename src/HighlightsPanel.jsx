@@ -3,6 +3,13 @@ import { motion } from "motion/react"
 import { blogData } from "./data"
 import { THEME, TYPE_LABELS } from "./theme"
 import { glassPanel, glassCard, glassCardHover, glassDock, SPRING, EASE_OUT } from "./glass"
+import { TOPBAR_TOP, TOPBAR_RIGHT, TOPBAR_SIZE } from "./chrome"
+
+// Anchored below the "?"/grid button row instead of centered on the
+// viewport — the gap is the panel's own padding value (18px) below, so the
+// spacing matches its internal rhythm instead of being an arbitrary number.
+const PANEL_PADDING = 18
+const PANEL_TOP = TOPBAR_TOP + TOPBAR_SIZE + PANEL_PADDING
 
 function nodeColor(node) {
   if (node.type === "ref")   return THEME.ref
@@ -141,11 +148,10 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
       exit={{ opacity: 0, x: 20, scale: 0.98, transition: { duration: 0.16, ease: "easeIn" } }}
       transition={SPRING.panel}
       style={{
-        position: "fixed", top: "50%", right: "24px",
-        translateY: "-50%",
-        width: "272px", maxHeight: "82vh", overflowY: "auto",
+        position: "fixed", top: `${PANEL_TOP}px`, right: `${TOPBAR_RIGHT}px`,
+        width: "272px", maxHeight: `calc(100vh - ${PANEL_TOP + TOPBAR_TOP}px)`, overflowY: "auto",
         ...glassPanel("#64748b"),
-        padding: "18px", fontFamily: "'DM Mono', monospace",
+        padding: `${PANEL_PADDING}px`, fontFamily: "'DM Mono', monospace",
         zIndex: 50, scrollbarWidth: "none",
       }}
     >
@@ -197,12 +203,13 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.07)", margin: "14px 0 12px" }} />
 
       {/* Filter label */}
-      <div style={{ fontSize: "9px", color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>
-        Filter
+      <div style={{ fontSize: "9px", color: "#64748b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "10px" }}>
+        Filter By
       </div>
 
       {/* Type pills */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "8px" }}>
+      <div style={{ fontSize: "9px", color: "#475569", marginBottom: "6px" }}>Article Type:</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "12px" }}>
         {ALL_TYPES.map(type => (
           <FilterPill key={type} label={TYPE_LABELS[type]} color={THEME[type]}
             active={activeTypes.has(type)} onClick={() => toggleType(type)} />
@@ -210,6 +217,7 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
       </div>
 
       {/* Tag pills */}
+      <div style={{ fontSize: "9px", color: "#475569", marginBottom: "6px" }}>Category:</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
         {ALL_TAGS.map(tag => (
           <FilterPill key={tag} label={tag} color="#94a3b8"
