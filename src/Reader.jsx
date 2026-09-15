@@ -1,8 +1,15 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, Fragment } from "react"
 import { motion } from "motion/react"
 import { THEME, TYPE_LABELS } from "./theme"
 import { ARTICLES } from "./readerContent"
+import { ARTICLES as GENERATED_ARTICLES } from "./readerContent.generated"
 import { glassPanel, glassPanelLight, glassDock, SPRING, EASE_OUT } from "./glass"
+
+// readerContent.js holds whatever hasn't been converted to Markdown yet;
+// readerContent.generated.js is compiled from content/articles/*.md by
+// scripts/build-content.js (run automatically before every dev/build).
+// Generated entries win on id collisions.
+const ACTIVE_ARTICLES = { ...ARTICLES, ...GENERATED_ARTICLES }
 
 // ─── Reading progress bar ─────────────────────────────────────────────────────
 function ProgressBar({ color }) {
@@ -132,26 +139,49 @@ function Controls({ settings, onChange, onClose, hidden, onToggleHide, isDark })
   )
 }
 
-// ─── Inline links — [text](url) markdown, or a bare http(s) URL → <a> ─────────
-const LINK_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s)]+)/g
+// ─── Inline markdown — links, bare URLs, **bold**, *italic*, `code` ───────────
+// Order matters: **bold** must be tried before *italic* so `**x**` doesn't
+// get read as two empty italic runs.
+const INLINE_PATTERN = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s)]+)|\*\*([^*]+)\*\*|`([^`]+)`|\*([^*]+)\*/g
 
-function renderInline(text, linkColor) {
+function renderInline(text, isDark) {
+  const linkColor = isDark ? "#a78bfa" : "#7c3aed"
+  const codeColor = isDark ? "#7dd3fc" : "#0369a1"
+  const codeBg    = isDark ? "#080c14" : "#f1f5f9"
+  const codeBdr   = isDark ? "#1e293b" : "#e2e8f0"
+
   const parts = []
   let lastIndex = 0
   let match
   let key = 0
-  LINK_PATTERN.lastIndex = 0
-  while ((match = LINK_PATTERN.exec(text)) !== null) {
+  INLINE_PATTERN.lastIndex = 0
+  while ((match = INLINE_PATTERN.exec(text)) !== null) {
     if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
-    const url   = match[2] || match[3]
-    const label = match[1] || match[3]
-    parts.push(
-      <a key={key++} href={url} target="_blank" rel="noopener noreferrer"
-        style={{ color: linkColor, textDecoration: "underline", textUnderlineOffset: "2px", overflowWrap: "anywhere" }}>
-        {label}
-      </a>
-    )
-    lastIndex = LINK_PATTERN.lastIndex
+    const [, linkLabel, linkUrl, bareUrl, bold, code, italic] = match
+
+    if (linkLabel !== undefined || bareUrl !== undefined) {
+      const url   = linkUrl || bareUrl
+      const label = linkLabel || bareUrl
+      parts.push(
+        <a key={key++} href={url} target="_blank" rel="noopener noreferrer"
+          style={{ color: linkColor, textDecoration: "underline", textUnderlineOffset: "2px", overflowWrap: "anywhere" }}>
+          {label}
+        </a>
+      )
+    } else if (bold !== undefined) {
+      parts.push(<strong key={key++} style={{ fontWeight: 600 }}>{bold}</strong>)
+    } else if (code !== undefined) {
+      parts.push(
+        <code key={key++} style={{
+          fontFamily: "'DM Mono', monospace", fontSize: "0.9em",
+          color: codeColor, background: codeBg,
+          border: `1px solid ${codeBdr}`, borderRadius: "4px", padding: "2px 5px",
+        }}>{code}</code>
+      )
+    } else if (italic !== undefined) {
+      parts.push(<em key={key++}>{italic}</em>)
+    }
+    lastIndex = INLINE_PATTERN.lastIndex
   }
   if (lastIndex < text.length) parts.push(text.slice(lastIndex))
   return parts
@@ -163,25 +193,25 @@ function Block({ block, fonts, sizes, isDark }) {
   const head  = isDark ? "#f8fafc" : "#0f172a"
   const muted = isDark ? "#475569" : "#94a3b8"
   const quoteBg  = isDark ? "#0f172a" : "#f8fafc"
-  const quoteBdr = isDark ? "#1e293b" : "#e2e8f0"
   const codeBg   = isDark ? "#080c14" : "#f1f5f9"
-  const linkClr  = isDark ? "#a78bfa" : "#7c3aed"
+  const borderClr = isDark ? "#1e293b" : "#e2e8f0"
+  const accent   = isDark ? "#a78bfa" : "#7c3aed"
 
   switch (block.type) {
     case "heading":
       return <h2 style={{ fontFamily: fonts.heading, fontSize: sizes.h2,
         color: head, fontWeight: 600, margin: "2em 0 0.6em", lineHeight: 1.3,
-        overflowWrap: "anywhere" }}>{renderInline(block.text, linkClr)}</h2>
+        overflowWrap: "anywhere" }}>{renderInline(block.text, isDark)}</h2>
 
     case "subheading":
       return <h3 style={{ fontFamily: fonts.body, fontSize: sizes.h3,
         color: head, fontWeight: 500, margin: "1.6em 0 0.5em", lineHeight: 1.4,
-        overflowWrap: "anywhere" }}>{renderInline(block.text, linkClr)}</h3>
+        overflowWrap: "anywhere" }}>{renderInline(block.text, isDark)}</h3>
 
     case "paragraph":
       return <p style={{ fontFamily: fonts.body, fontSize: sizes.body,
         color: prose, lineHeight: 1.85, margin: "0 0 1.2em",
-        overflowWrap: "anywhere" }}>{renderInline(block.text, linkClr)}</p>
+        overflowWrap: "anywhere" }}>{renderInline(block.text, isDark)}</p>
 
     case "quote":
       return (
@@ -191,22 +221,30 @@ function Block({ block, fonts, sizes, isDark }) {
           borderRadius: "0 8px 8px 0",
         }}>
           <p style={{ fontFamily: fonts.body, fontSize: sizes.body,
-            color: isDark ? "#a78bfa" : "#7c3aed", lineHeight: 1.75,
+            color: accent, lineHeight: 1.75,
             margin: 0, fontStyle: "italic",
-            overflowWrap: "anywhere" }}>{renderInline(block.text, linkClr)}</p>
+            overflowWrap: "anywhere" }}>{renderInline(block.text, isDark)}</p>
+          {block.source && (
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "11px",
+              color: muted, marginTop: "10px", overflowWrap: "anywhere" }}>
+              {renderInline(block.source, isDark)}
+            </div>
+          )}
         </blockquote>
       )
 
-    case "list":
+    case "list": {
+      const ListTag = block.ordered ? "ol" : "ul"
       return (
-        <ul style={{ margin: "0 0 1.2em", paddingLeft: "1.3em" }}>
+        <ListTag style={{ margin: "0 0 1.2em", paddingLeft: "1.3em" }}>
           {block.items.map((item, i) => (
             <li key={i} style={{ fontFamily: fonts.body, fontSize: sizes.body,
               color: prose, lineHeight: 1.85, marginBottom: "0.5em",
-              overflowWrap: "anywhere" }}>{renderInline(item, linkClr)}</li>
+              overflowWrap: "anywhere" }}>{renderInline(item, isDark)}</li>
           ))}
-        </ul>
+        </ListTag>
       )
+    }
 
     case "code":
       return (
@@ -214,7 +252,7 @@ function Block({ block, fonts, sizes, isDark }) {
           background: codeBg, borderRadius: "8px",
           padding: "16px", margin: "1.4em 0",
           overflowX: "auto",
-          border: `1px solid ${isDark ? "#1e293b" : "#e2e8f0"}`,
+          border: `1px solid ${borderClr}`,
         }}>
           <code style={{
             fontFamily: "'DM Mono', monospace", fontSize: "12px",
@@ -224,50 +262,111 @@ function Block({ block, fonts, sizes, isDark }) {
       )
 
     case "divider":
-      return <hr style={{ border: "none",
-        borderTop: `1px solid ${isDark ? "#1e293b" : "#e2e8f0"}`,
-        margin: "2.5em 0" }} />
-    
+      return block.label ? (
+        <div style={{ display: "flex", alignItems: "center", gap: "14px", margin: "3em 0" }}>
+          <div style={{ flex: 1, height: "1px", background: borderClr }} />
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px",
+            letterSpacing: "0.16em", textTransform: "uppercase", color: muted,
+            whiteSpace: "nowrap" }}>{block.label}</span>
+          <div style={{ flex: 1, height: "1px", background: borderClr }} />
+        </div>
+      ) : (
+        <hr style={{ border: "none", borderTop: `1px solid ${borderClr}`, margin: "2.5em 0" }} />
+      )
+
     case "table":
-  return (
-    <div style={{
-      overflowX: "auto", margin: "1.6em 0",
-      border: `1px solid ${isDark ? "#1e293b" : "#e2e8f0"}`,
-      borderRadius: "6px",
-    }}>
-      <table style={{ width: "100%", borderCollapse: "collapse",
-        fontFamily: "'DM Mono', monospace", fontSize: "12px" }}>
-        {block.headers && (
-          <thead>
-            <tr style={{ background: isDark ? "#080c14" : "#f8fafc",
-              borderBottom: `1px solid ${isDark ? "#1e293b" : "#e2e8f0"}` }}>
-              {block.headers.map((h, i) => (
-                <th key={i} style={{ padding: "9px 14px", textAlign: "left",
-                  color: isDark ? "#94a3b8" : "#64748b",
-                  fontWeight: 500, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
-                  {h}
-                </th>
+      return (
+        <div style={{
+          overflowX: "auto", margin: "1.6em 0",
+          border: `1px solid ${borderClr}`,
+          borderRadius: "6px",
+        }}>
+          <table style={{ width: "100%", borderCollapse: "collapse",
+            fontFamily: "'DM Mono', monospace", fontSize: "12px" }}>
+            {block.headers && (
+              <thead>
+                <tr style={{ background: isDark ? "#080c14" : "#f8fafc",
+                  borderBottom: `1px solid ${borderClr}` }}>
+                  {block.headers.map((h, i) => (
+                    <th key={i} style={{ padding: "9px 14px", textAlign: "left",
+                      color: isDark ? "#94a3b8" : "#64748b",
+                      fontWeight: 500, letterSpacing: "0.05em", whiteSpace: "nowrap" }}>
+                      {renderInline(h, isDark)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              {block.rows.map((row, i) => (
+                <tr key={i} style={{ borderBottom: i < block.rows.length - 1
+                  ? `1px solid ${isDark ? "#0f172a" : "#f1f5f9"}` : "none" }}>
+                  {row.map((cell, j) => (
+                    <td key={j} style={{ padding: "8px 14px",
+                      color: isDark ? "#cbd5e1" : "#334155", verticalAlign: "top" }}>
+                      {renderInline(cell, isDark)}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          </thead>
-        )}
-        <tbody>
-          {block.rows.map((row, i) => (
-            <tr key={i} style={{ borderBottom: i < block.rows.length - 1
-              ? `1px solid ${isDark ? "#0f172a" : "#f1f5f9"}` : "none" }}>
-              {row.map((cell, j) => (
-                <td key={j} style={{ padding: "8px 14px",
-                  color: isDark ? "#cbd5e1" : "#334155", verticalAlign: "top" }}>
-                  {cell}
-                </td>
-              ))}
-            </tr>
+            </tbody>
+          </table>
+        </div>
+      )
+
+    case "callout":
+      return (
+        <div style={{
+          background: isDark ? "rgba(167,139,250,0.08)" : "rgba(124,58,237,0.06)",
+          borderLeft: `2px solid ${accent}`,
+          padding: "16px 20px", margin: "1.8em 0", borderRadius: "0 8px 8px 0",
+        }}>
+          {block.label && (
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px",
+              letterSpacing: "0.1em", textTransform: "uppercase", color: accent,
+              marginBottom: "8px" }}>{block.label}</div>
+          )}
+          <p style={{ fontFamily: fonts.body, fontSize: sizes.body,
+            color: prose, lineHeight: 1.8, margin: 0,
+            overflowWrap: "anywhere" }}>{renderInline(block.text, isDark)}</p>
+        </div>
+      )
+
+    case "stats":
+      return (
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", margin: "1.8em 0" }}>
+          {block.items.map((item, i) => (
+            <div key={i} style={{
+              flex: "1 1 140px",
+              background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc",
+              border: `1px solid ${borderClr}`, borderRadius: "8px",
+              padding: "14px 16px",
+            }}>
+              <div style={{ fontFamily: fonts.heading, fontSize: "1.6rem",
+                color: accent, lineHeight: 1, marginBottom: "4px",
+                overflowWrap: "anywhere" }}>{item.num}</div>
+              <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "9px",
+                letterSpacing: "0.08em", textTransform: "uppercase", color: muted }}>{item.label}</div>
+              {item.sub && <div style={{ fontSize: "11px", color: muted, marginTop: "4px" }}>{item.sub}</div>}
+            </div>
           ))}
-        </tbody>
-      </table>
-    </div>
-  )
-    
+        </div>
+      )
+
+    case "image":
+      return (
+        <figure style={{ margin: "1.8em 0" }}>
+          <img src={block.src} alt={block.alt} style={{
+            display: "block", width: "100%", borderRadius: "8px",
+            border: `1px solid ${borderClr}`,
+          }} />
+          {block.caption && (
+            <figcaption style={{ fontSize: "11px", color: muted, marginTop: "8px",
+              fontFamily: "'DM Mono', monospace" }}>{block.caption}</figcaption>
+          )}
+        </figure>
+      )
+
     default:
       return null
   }
@@ -314,7 +413,7 @@ function DaySky() {
 
 // ─── Main Reader ──────────────────────────────────────────────────────────────
 export function Reader({ nodeId, onClose }) {
-  const article = ARTICLES[nodeId]
+  const article = ACTIVE_ARTICLES[nodeId]
   const [settings,      setSettings]      = useState({ theme: "dark", font: "mono", size: "md" })
   const [controlsHidden, setControlsHidden] = useState(false)
 
@@ -383,6 +482,27 @@ export function Reader({ nodeId, onClose }) {
         }}
       >← Universe</motion.button>
 
+      {/* Footer chrome — author byline (constant, every article) + optional colophon */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={SPRING.snappy}
+        style={{
+          position: "fixed", bottom: "20px", left: "24px", right: "24px",
+          maxWidth: "420px",
+          ...(isDark ? glassPanel("#a78bfa") : glassPanelLight()),
+          borderRadius: "10px", padding: "8px 14px",
+          fontFamily: "'DM Mono', monospace", fontSize: "9px",
+          letterSpacing: "0.04em", lineHeight: 1.6, zIndex: 160,
+        }}
+      >
+        <span style={{ color: isDark ? "#94a3b8" : "#64748b" }}>Swasti Choubey</span>
+        {article.colophon && (
+          <span style={{ display: "block", marginTop: "2px",
+            color: isDark ? "#64748b" : "#94a3b8", opacity: 0.85 }}>{article.colophon}</span>
+        )}
+      </motion.div>
+
       {/* Scrollable content */}
       <div id="reader-scroll" style={{
         position: "relative", zIndex: 1,
@@ -390,36 +510,94 @@ export function Reader({ nodeId, onClose }) {
         scrollbarWidth: "thin",
         scrollbarColor: isDark ? "#1e293b transparent" : "#e2e8f0 transparent",
       }}>
+        {/* Full-bleed hero — only when the article has one; everything else is unaffected */}
+        {article.heroImage && (
+          <div style={{ position: "relative", width: "100%", height: "440px", overflow: "hidden" }}>
+            <img src={article.heroImage.src} alt={article.heroImage.alt} style={{
+              position: "absolute", inset: 0, width: "100%", height: "100%",
+              objectFit: "cover", opacity: isDark ? 0.5 : 0.35,
+            }} />
+            <div style={{
+              position: "absolute", inset: 0,
+              background: isDark
+                ? `linear-gradient(to bottom, transparent 0%, rgba(5,5,15,0.35) 45%, ${bgColor} 92%)`
+                : `linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.55) 45%, ${bgColor} 92%)`,
+            }} />
+            <div style={{
+              position: "absolute", left: 0, right: 0, bottom: 0,
+              maxWidth: "680px", margin: "0 auto", padding: "0 32px 36px",
+            }}>
+              {article.kicker && (
+                <div style={{ display: "flex", alignItems: "center", gap: "10px",
+                  fontFamily: "'DM Mono', monospace", fontSize: "10px", letterSpacing: "0.14em",
+                  textTransform: "uppercase", color, marginBottom: "14px" }}>
+                  {article.kicker.join(" · ")}
+                </div>
+              )}
+              <h1 style={{
+                fontFamily: fonts.heading,
+                fontSize: settings.size === "lg" ? "32px" : settings.size === "sm" ? "24px" : "28px",
+                fontWeight: 600, color: textColor, lineHeight: 1.25, margin: 0,
+              }}>{article.title}</h1>
+              {article.dek && (
+                <p style={{ fontSize: "13px", color: mutedClr, marginTop: "10px",
+                  maxWidth: "480px", lineHeight: 1.6 }}>{article.dek}</p>
+              )}
+            </div>
+          </div>
+        )}
+
         <div style={{
           maxWidth: "680px", margin: "0 auto",
-          padding: "80px 32px 120px",
+          padding: article.heroImage ? "40px 32px 120px" : "80px 32px 120px",
         }}>
           {/* Article header */}
-          <div style={{ marginBottom: "48px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-              <span style={{
-                width: "7px", height: "7px", borderRadius: "50%",
-                background: color, boxShadow: `0 0 6px ${color}`,
-              }} />
+          {article.heroImage ? (
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px",
+              marginBottom: "48px", paddingBottom: "20px",
+              borderBottom: `1px solid ${isDark ? "#1e293b" : "#e2e8f0"}` }}>
+              <span style={{ width: "7px", height: "7px", borderRadius: "50%",
+                background: color, boxShadow: `0 0 6px ${color}` }} />
               <span style={{ fontSize: "9px", color: mutedClr,
-                letterSpacing: "0.12em", textTransform: "uppercase" }}>
-                {TYPE_LABELS[article.type]}
-              </span>
+                letterSpacing: "0.12em", textTransform: "uppercase" }}>{TYPE_LABELS[article.type]}</span>
               <span style={{ fontSize: "9px", color: mutedClr }}>·</span>
               <span style={{ fontSize: "9px", color: mutedClr }}>{article.date}</span>
               <span style={{ fontSize: "9px", color: mutedClr }}>·</span>
               <span style={{ fontSize: "9px", color: mutedClr }}>{article.readTime} min read</span>
+              {article.meta?.map((m, i) => (
+                <Fragment key={i}>
+                  <span style={{ fontSize: "9px", color: mutedClr }}>·</span>
+                  <span style={{ fontSize: "9px", color: mutedClr }}>{m.label}: {m.value}</span>
+                </Fragment>
+              ))}
             </div>
+          ) : (
+            <div style={{ marginBottom: "48px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+                <span style={{
+                  width: "7px", height: "7px", borderRadius: "50%",
+                  background: color, boxShadow: `0 0 6px ${color}`,
+                }} />
+                <span style={{ fontSize: "9px", color: mutedClr,
+                  letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                  {TYPE_LABELS[article.type]}
+                </span>
+                <span style={{ fontSize: "9px", color: mutedClr }}>·</span>
+                <span style={{ fontSize: "9px", color: mutedClr }}>{article.date}</span>
+                <span style={{ fontSize: "9px", color: mutedClr }}>·</span>
+                <span style={{ fontSize: "9px", color: mutedClr }}>{article.readTime} min read</span>
+              </div>
 
-            <h1 style={{
-              fontFamily: fonts.heading,
-              fontSize: settings.size === "lg" ? "32px" : settings.size === "sm" ? "24px" : "28px",
-              fontWeight: 600, color: textColor, lineHeight: 1.25,
-              margin: 0,
-            }}>
-              {article.title}
-            </h1>
-          </div>
+              <h1 style={{
+                fontFamily: fonts.heading,
+                fontSize: settings.size === "lg" ? "32px" : settings.size === "sm" ? "24px" : "28px",
+                fontWeight: 600, color: textColor, lineHeight: 1.25,
+                margin: 0,
+              }}>
+                {article.title}
+              </h1>
+            </div>
+          )}
 
           {/* Article body */}
           {article.blocks.map((block, i) => (

@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "predev": "node -e \"require('fs').copyFileSync('index.template.html','index.html')\"",
+    "predev": "node -e \"require('fs').copyFileSync('index.template.html','index.html')\" && node scripts/build-content.js",
     "dev": "vite",
-    "prebuild": "node -e \"require('fs').copyFileSync('index.template.html','index.html')\"",
+    "prebuild": "node -e \"require('fs').copyFileSync('index.template.html','index.html')\" && node scripts/build-content.js",
     "build": "vite build",
     "deploy": "node scripts/deploy.js",
     "lint": "eslint .",
@@ -31,6 +31,11 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "gray-matter": "^4.0.3",
+    "remark-directive": "^4.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
     "vite": "^8.0.12"
   }
 }
