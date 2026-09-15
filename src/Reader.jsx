@@ -706,7 +706,7 @@ function Block({ block, fonts, sizes, isDark, accent }) {
           }} />
           {block.caption && (
             <figcaption style={{ fontSize: "11px", color: muted, marginTop: "8px",
-              fontFamily: "'DM Mono', monospace" }}>{block.caption}</figcaption>
+              fontFamily: "'DM Mono', monospace", textAlign: "center" }}>{block.caption}</figcaption>
           )}
         </figure>
       )

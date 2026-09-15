@@ -55,6 +55,18 @@ export const blogData = {
       draft: false,
     },
     {
+      id: "the-proxy-problem",
+      type: "exploratory",
+      title: "The Proxy Problem: Why Aligning AI Is Harder Than Simply Saying What You Want",
+      excerpt: "A proxy is never quite the same as intent, and optimization only widens the gap between them — on outer and inner misalignment, two 2026 incidents that turned this from philosophy into engineering, and why evaluation awareness might be the hardest problem left.",
+      tags: ["AI Safety", "Evals", "Alignment"],
+      date: "2026-09",
+      readTime: 20,
+      publishedAt: null,
+      featured: false,
+      draft: false,
+    },
+    {
       id: "rag-security",
       type: "project",
       title: "RAG Security Scanner",
