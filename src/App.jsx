@@ -50,6 +50,10 @@ export default function App() {
   const [aboutExpanded, setAboutExpanded] = useState(false)
   const [aboutView,     setAboutView]     = useState(null)
   const [gridView,      setGridView]      = useState(false)
+  // Where the reader was opened from, so its back button can both label
+  // itself correctly and land somewhere real — "grid" or null (universe /
+  // direct load, where there's no meaningful prior in-app route).
+  const [readerOrigin,  setReaderOrigin]  = useState(null)
   const [readerNodeId,  setReaderNodeId]  = useState(() => {
     const id = decodeURIComponent(window.location.pathname.replace(/^\//, ""))
     return readableNode(id)?.id ?? null
@@ -87,6 +91,7 @@ export default function App() {
   const openReader = node => {
     if (!node || node.draft) return
     if (handleReadExternal(node)) return
+    setReaderOrigin(gridView ? "grid" : null)
     setReaderNodeId(node.id)
     if (window.location.pathname !== "/" + node.id) {
       window.history.pushState({}, "", "/" + node.id)
@@ -135,6 +140,7 @@ export default function App() {
   }
   const handleCloseReader = () => {
     setReaderNodeId(null)
+    setReaderOrigin(null)
     if (window.location.pathname !== "/") {
       window.history.pushState({}, "", "/")
     }
@@ -153,14 +159,14 @@ export default function App() {
     return (
       <>
         <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+          @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans:wght@400;500;600&display=swap');
           * { margin:0; padding:0; box-sizing:border-box; }
           body { background:#05050f; }
           ::-webkit-scrollbar { width:3px; height:3px; }
           ::-webkit-scrollbar-thumb { background:#1e293b; border-radius:2px; }
         `}</style>
         {readerNodeId
-          ? <Reader nodeId={readerNodeId} onClose={handleCloseReader} />
+          ? <Reader nodeId={readerNodeId} onClose={handleCloseReader} backLabel="Back" />
           : <MobileView onRead={openReader} />
         }
       </>
@@ -223,10 +229,16 @@ export default function App() {
       <HowToPanel />
       <GridToggle active={gridView} onClick={() => setGridView(p => !p)} />
 
-      {readerNodeId && <Reader nodeId={readerNodeId} onClose={handleCloseReader} />}
+      {readerNodeId && (
+        <Reader
+          nodeId={readerNodeId}
+          onClose={handleCloseReader}
+          backLabel={readerOrigin === "grid" ? "Grid" : "Universe"}
+        />
+      )}
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans:wght@400;500;600&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { overflow: hidden; background: #05050f; }
         ::-webkit-scrollbar { width: 3px; }

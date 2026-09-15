@@ -142,7 +142,7 @@ function convertBlock(node) {
   }
 }
 
-const OPTIONAL_FRONTMATTER = ["kicker", "meta", "dek", "heroImage", "colophon"]
+const OPTIONAL_FRONTMATTER = ["kicker", "meta", "dek", "heroImage", "colophon", "substackUrl"]
 
 const articles = {}
 const files = readdirSync(contentDir).filter(f => f.endsWith(".md")).sort()
