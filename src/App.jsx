@@ -1,7 +1,5 @@
-import { useState, Suspense, useMemo, useEffect } from "react"
-import { Canvas } from "@react-three/fiber"
+import { useState, Suspense, useMemo, useEffect, lazy } from "react"
 import { AnimatePresence } from "motion/react"
-import { Scene } from "./Scene"
 import { InfoPanel } from "./InfoPanel"
 import { AboutPanel } from "./AboutPanel"
 import { HighlightsPanel } from "./HighlightsPanel"
@@ -18,6 +16,10 @@ import { PlanetNav } from "./PlanetNav"
 import { useReducedMotion } from "./useReducedMotion"
 
 const MOBILE_BREAKPOINT = 768
+
+// The 3D scene (three, R3F, drei, postprocessing) is a separate chunk,
+// fetched only when the desktop universe actually renders.
+const Universe = lazy(() => import("./Universe"))
 
 function nodePassesFilter(node, filters) {
   const { clusters, types } = filters
@@ -177,24 +179,18 @@ export default function App() {
         <GridView onRead={openReader} onClose={() => setGridView(false)} />
       ) : (
         <>
-          <Canvas
-            camera={{ position: [4, 14, 28], fov: 52 }}
-            dpr={[1, 2]}
-            frameloop={readerNodeId ? "never" : frameloop}
-            gl={{ antialias: false, alpha: false, powerPreference: "high-performance" }}
-            onPointerMissed={handlePointerMissed}
-          >
-            <Suspense fallback={null}>
-              <Scene
-                selected={selected}
-                onSelect={handleSelect}
-                flyTarget={flyTarget}
-                filteredIds={filteredIds}
-                focusedId={focusedId}
-                reducedMotion={reducedMotion}
-              />
-            </Suspense>
-          </Canvas>
+          <Suspense fallback={null}>
+            <Universe
+              frameloop={readerNodeId ? "never" : frameloop}
+              onPointerMissed={handlePointerMissed}
+              selected={selected}
+              onSelect={handleSelect}
+              flyTarget={flyTarget}
+              filteredIds={filteredIds}
+              focusedId={focusedId}
+              reducedMotion={reducedMotion}
+            />
+          </Suspense>
 
           <AnimatePresence>
             {showAboutPanel && (
