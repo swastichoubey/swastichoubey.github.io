@@ -9,8 +9,8 @@ import { planetRadius } from "./encoding"
 // Each article orbits its cluster centre on its own inclined circle. Orbit
 // radii step outwards by both planets' radii plus a gap: two concentric
 // orbits are never closer than their radius difference, so members can't
-// collide whatever their phase or inclination. Reference dots (interim,
-// until they become moons) keep a fixed offset from their planet.
+// collide whatever their phase or inclination. Reference moons orbit their
+// planet (Moons.jsx).
 
 const CLUSTER_RING_RADIUS = 13
 const ORBIT_CORE   = 1.2    // clear space between cluster centre and the first planet
@@ -50,9 +50,7 @@ function dominantType(members) {
 }
 
 export function computeLayout() {
-  const nodes    = blogData.nodes.filter(isVisible)
-  const articles = nodes.filter(n => n.type !== "ref")
-  const refs     = nodes.filter(n => n.type === "ref")
+  const articles = blogData.nodes.filter(n => n.type !== "ref" && isVisible(n))
 
   const clusters = visibleClusters.map((name, i) => {
     const r = rng(`cluster:${name}`)
@@ -93,21 +91,7 @@ export function computeLayout() {
     })
   }
 
-  const refOffsets = {}
-  for (const ref of refs) {
-    if (!orbits[ref.parent]) continue
-    const r = rng(`ref:${ref.id}`)
-    const theta = range(r, 0, Math.PI * 2)
-    const dist = range(r, 1.7, 2.3)
-    refOffsets[ref.id] = {
-      parent: ref.parent,
-      x: Math.cos(theta) * dist,
-      y: range(r, -0.6, 0.6),
-      z: Math.sin(theta) * dist,
-    }
-  }
-
-  return { clusters, orbits, refOffsets }
+  return { clusters, orbits }
 }
 
 // Position on an orbit at drift time t, written into `out` (a Vector3).

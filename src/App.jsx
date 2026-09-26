@@ -52,6 +52,7 @@ export default function App() {
   const [filters,       setFilters]       = useState({ clusters: new Set(), types: new Set() })
   const [aboutView,     setAboutView]     = useState(null)
   const [focusedId,     setFocusedId]     = useState(null)
+  const [focusedRef,    setFocusedRef]    = useState(null)   // "articleId:refId" from keyboard nav
   // Stop rendering the scene entirely while the tab is hidden.
   const [frameloop,     setFrameloop]     = useState(document.hidden ? "never" : "always")
   const reducedMotion = useReducedMotion()
@@ -188,6 +189,7 @@ export default function App() {
               flyTarget={flyTarget}
               filteredIds={filteredIds}
               focusedId={focusedId}
+              focusedRef={focusedRef}
               reducedMotion={reducedMotion}
             />
           </Suspense>
@@ -219,7 +221,7 @@ export default function App() {
           <Legend />
           <Astra />
           <AboutButton active={showAboutPanel} onClick={toggleAbout} />
-          {!readerNodeId && <PlanetNav onFocusChange={setFocusedId} onOpen={openReader} />}
+          {!readerNodeId && <PlanetNav onFocusChange={setFocusedId} onRefFocusChange={setFocusedRef} onOpen={openReader} />}
         </>
       )}
 

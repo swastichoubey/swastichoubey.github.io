@@ -4,9 +4,9 @@ import { OrbitControls, PerformanceMonitor } from "@react-three/drei"
 import { EffectComposer, Bloom, ToneMapping, SMAA } from "@react-three/postprocessing"
 import { ToneMappingMode } from "postprocessing"
 import * as THREE from "three"
-import { Node } from "./Node"
 import { Planet } from "./Planet"
-import { Edge } from "./Edge"
+import { Moons } from "./Moons"
+import { RelatedArcs } from "./RelatedArcs"
 import { blogData } from "./data"
 import { computeLayout, orbitPosition } from "./layout"
 import { Starfield } from "./Starfield"
@@ -80,7 +80,7 @@ function useAdaptiveQuality() {
   return { bloom, dpr, monitoring, onIncline, onDecline }
 }
 
-export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, reducedMotion }) {
+export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, focusedRef, reducedMotion }) {
   const controlsRef = useRef()
   const { camera }  = useThree()
   const layout      = useMemo(() => computeLayout(), [])
@@ -99,33 +99,54 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
   }, [])
 
   // ── Orbital drift ─────────────────────────────────────────────────────────
-  // One Vector3 per visible body, updated in place every frame; planets,
-  // reference dots and edges read from it. Drift time slows to a stop while
+  // One Vector3 per visible planet, updated in place every frame; planets,
+  // moons and related arcs read from it. Drift time slows to a stop while
   // anything is hovered, focused or selected, so a body never slides out
   // from under the cursor.
   const live = useMemo(() => {
     const m = new Map()
     for (const [id, orbit] of Object.entries(layout.orbits)) m.set(id, orbitPosition(orbit, 0, new THREE.Vector3()))
-    for (const [id, off] of Object.entries(layout.refOffsets)) m.set(id, m.get(off.parent).clone().add(off))
     return m
   }, [layout])
+  const articles = useMemo(() => blogData.nodes.filter(n => live.has(n.id)), [live])
   // Dev-only handle for automated checks (camera, controls, live positions)
   useEffect(() => {
     if (import.meta.env.DEV) window.__universe = { camera, controls: controlsRef, live, drift }
   })
 
-  const hoveredRef = useRef(null)
-  const onHoverChange = id => { hoveredRef.current = id }
+  // ── Activity: which planets currently show their moons / related arcs ────
+  // Hovered, focused or selected planets, plus the planet whose moon is under
+  // the pointer. Leaving a planet keeps it active for a short linger so the
+  // pointer can cross the gap to its moons.
+  const LINGER_MS = 700
+  const hoveredRef   = useRef(null)          // planet under the pointer
+  const moonHoverRef = useRef(null)          // article whose moon is under the pointer
+  const lingerRef    = useRef({ id: null, until: 0 })
+  const onHoverChange = id => {
+    if (!id && hoveredRef.current) lingerRef.current = { id: hoveredRef.current, until: performance.now() + LINGER_MS }
+    hoveredRef.current = id
+  }
+  const onMoonHoverChange = moon => {
+    if (!moon && moonHoverRef.current) lingerRef.current = { id: moonHoverRef.current, until: performance.now() + LINGER_MS }
+    moonHoverRef.current = moon?.article ?? null
+  }
+  const propsRef = useRef()
+  propsRef.current = { selectedId: selected?.id, focusedId }
+  const isActive = useMemo(() => id => {
+    const { selectedId, focusedId } = propsRef.current
+    const linger = lingerRef.current
+    return id === hoveredRef.current || id === moonHoverRef.current || id === selectedId || id === focusedId
+      || (id === linger.id && performance.now() < linger.until)
+  }, [])
   const drift = useRef({ t: 0, speed: reducedMotion ? 0 : 1 })
 
   const paused = !!(selected || focusedId)
   useFrame((_, dt) => {
     const d = drift.current
-    const goal = (reducedMotion || paused || hoveredRef.current) ? 0 : 1
+    const goal = (reducedMotion || paused || hoveredRef.current || moonHoverRef.current) ? 0 : 1
     d.speed += (goal - d.speed) * (1 - Math.exp(-dt * 6))
     d.t += dt * d.speed
     for (const [id, orbit] of Object.entries(layout.orbits)) orbitPosition(orbit, d.t, live.get(id))
-    for (const [id, off] of Object.entries(layout.refOffsets)) live.get(id).copy(live.get(off.parent)).add(off)
   }, -3)
 
   const connectedIds = useMemo(() => {
@@ -230,40 +251,22 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
       <group>
         <Nebulae clusters={layout.clusters} filteredIds={filteredIds} reducedMotion={reducedMotion} />
 
-        {/* Edges */}
-        {blogData.edges.map((edge, i) => {
-          const sp = live.get(edge.source)
-          const ep = live.get(edge.target)
-          if (!sp || !ep) return null
+        {/* Resting state shows planets only; moons and related arcs appear
+            for active planets */}
+        <RelatedArcs live={live} articles={articles} isActive={isActive} reducedMotion={reducedMotion} />
+        <Moons live={live} articles={articles} isActive={isActive} focusedRef={focusedRef}
+          onHoverChange={onMoonHoverChange} reducedMotion={reducedMotion} />
 
-          // Filter: fade if either endpoint is filtered out
-          const filterFade = hasFilter && (
-            !filteredIds.has(edge.source) || !filteredIds.has(edge.target)
-          )
-          // Select: fade edges not in selection neighbourhood
-          const selectFade = selected && (
-            !connectedIds.has(edge.source) || !connectedIds.has(edge.target)
-          )
-          const isH = !!(selected && connectedIds.has(edge.source) && connectedIds.has(edge.target))
-          const fade = (filterFade || selectFade) ? "hard" : "none"
-
-          return <Edge key={i} start={sp} end={ep} isHighlighted={isH} fade={fade} />
-        })}
-
-        {/* Planets and reference dots */}
-        {blogData.nodes.map(node => {
+        {articles.map(node => {
           const livePos = live.get(node.id)
-          if (!livePos) return null
-
           const filterFaded = hasFilter && !filteredIds.has(node.id)
           const selectFaded = !!(selected && !connectedIds.has(node.id))
           const fade = (filterFaded || selectFaded) ? "hard" : "none"
           const isSelected    = selected?.id === node.id
           const isHighlighted = !!(selected && connectedIds.has(node.id) && node.id !== selected.id)
 
-          const Body = node.type === "ref" ? Node : Planet
           return (
-            <Body
+            <Planet
               key={node.id}
               node={node}
               livePos={livePos}
