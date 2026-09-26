@@ -1,5 +1,6 @@
 import { blogData, isVisible, visibleClusters } from "./data"
 import { planetRadius } from "./encoding"
+import { labelHalfWidth } from "./clusterLabel"
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 // Deterministic: every value comes from a PRNG seeded by an id, so the
@@ -9,9 +10,11 @@ import { planetRadius } from "./encoding"
 // in the default view's screen plane (right / up as seen along HOME_DIR),
 // with only a little depth jitter for parallax, so clusters can't overlap on
 // screen from the default view: Alignment right, Evals bottom (front),
-// Security left, Curiosities top (back). Each article orbits its cluster
-// centre on a circle whose plane also faces the default camera, tilted by at
-// most ~7°, so planets within a cluster can't overlap on screen either. Orbit
+// Security left, Curiosities top (back). Each article orbits its cluster's
+// name label (at the cluster centre) on a circle whose plane also faces the
+// default camera, tilted by at most ~3.4°, so planets within a cluster can't
+// overlap on screen either. The innermost orbit clears the label's
+// half-width plus the planet's radius, so no planet ever covers label text. Orbit
 // radii step outwards by both planets' radii plus a gap: two concentric
 // orbits are never closer than their radius difference, so members can't
 // collide in 3D either. Reference moons orbit their planet (Moons.jsx).
@@ -20,16 +23,13 @@ import { planetRadius } from "./encoding"
 // the ground plane). Scene.jsx frames the home view along it.
 export const HOME_DIR = normalize([4, 15, 28])
 
-const CLUSTER_RX    = 12.5   // cluster ellipse radius, screen-right
-const CLUSTER_RY    = 7.5    // … and screen-up
+const CLUSTER_RX    = 15.5   // cluster ellipse radius, screen-right
+const CLUSTER_RY    = 9    // … and screen-up
 const CLUSTER_DEPTH = 1.5    // max depth jitter towards / away from the camera
-const ORBIT_TILT   = 0.12   // max tilt of an orbit plane away from facing the camera (rad)
-const ORBIT_CORE   = 1.2    // clear space between cluster centre and the first planet
+const ORBIT_TILT   = 0.06   // max tilt of an orbit plane away from facing the camera (rad)
+const LABEL_GAP    = 0.35   // clearance between the label text and the innermost planet
 const ORBIT_GAP    = 0.4    // minimum surface-to-surface gap between orbits
-// Angular speed at radius ORBIT_REF (rad/s); outer orbits are slower
-// (Kepler-ish, ∝ r^-1.5), so a full lap takes minutes.
-const ORBIT_SPEED  = 0.035
-const ORBIT_REF    = 2.3
+const LAP_SECONDS  = [60, 90]   // one orbit takes 60–90s, varying per planet
 
 function hashString(str) {
   let h = 2166136261
@@ -110,7 +110,7 @@ export function computeLayout() {
     cluster.members.forEach((id, k) => {
       const r = rng(`orbit:${id}`)
       const R = planetRadius(byId.get(id).readTime)
-      radius = k === 0 ? ORBIT_CORE + R : radius + prevR + R + ORBIT_GAP
+      radius = k === 0 ? labelHalfWidth(cluster.name) + R + LABEL_GAP : radius + prevR + R + ORBIT_GAP
       prevR = R
       // Plane facing the camera, nudged by a small random tilt
       const { u, w } = planeBasis(HOME_DIR)
@@ -121,7 +121,7 @@ export function computeLayout() {
         radius,
         ...planeBasis(normal),
         phase: range(r, 0, Math.PI * 2),
-        speed: ORBIT_SPEED * Math.pow(ORBIT_REF / radius, 1.5),
+        speed: (Math.PI * 2) / range(r, ...LAP_SECONDS),
       }
     })
     // How far the cluster reaches from its centre (outer orbit + planet)
