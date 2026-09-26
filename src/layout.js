@@ -1,20 +1,24 @@
 import { blogData, isVisible, visibleClusters } from "./data"
+import { planetRadius } from "./encoding"
 
 // ─── Layout ──────────────────────────────────────────────────────────────────
 // Deterministic: every value comes from a PRNG seeded by an id, so the
 // universe looks the same on every visit.
 //
 // Clusters (only those with a published article) sit on a tilted ellipse.
-// Each article orbits its cluster centre on its own inclined circle; orbit
-// radii step outwards so members never collide. Reference dots (interim,
+// Each article orbits its cluster centre on its own inclined circle. Orbit
+// radii step outwards by both planets' radii plus a gap: two concentric
+// orbits are never closer than their radius difference, so members can't
+// collide whatever their phase or inclination. Reference dots (interim,
 // until they become moons) keep a fixed offset from their planet.
 
-const CLUSTER_RING_RADIUS = 12
-const ORBIT_FIRST  = 2.3
-const ORBIT_STEP   = 1.2
-// Angular speed at the first orbit (rad/s); outer orbits are slower
+const CLUSTER_RING_RADIUS = 13
+const ORBIT_CORE   = 1.2    // clear space between cluster centre and the first planet
+const ORBIT_GAP    = 0.4    // minimum surface-to-surface gap between orbits
+// Angular speed at radius ORBIT_REF (rad/s); outer orbits are slower
 // (Kepler-ish, ∝ r^-1.5), so a full lap takes minutes.
 const ORBIT_SPEED  = 0.035
+const ORBIT_REF    = 2.3
 
 function hashString(str) {
   let h = 2166136261
@@ -69,18 +73,22 @@ export function computeLayout() {
     }
   })
 
+  const byId = new Map(articles.map(a => [a.id, a]))
   const orbits = {}
   for (const cluster of clusters) {
+    let radius = 0, prevR = 0
     cluster.members.forEach((id, k) => {
       const r = rng(`orbit:${id}`)
-      const radius = ORBIT_FIRST + k * ORBIT_STEP
+      const R = planetRadius(byId.get(id).readTime)
+      radius = k === 0 ? ORBIT_CORE + R : radius + prevR + R + ORBIT_GAP
+      prevR = R
       orbits[id] = {
         center: cluster.center,
         radius,
         inclination: range(r, -0.3, 0.3),
         yaw: range(r, 0, Math.PI * 2),
         phase: range(r, 0, Math.PI * 2),
-        speed: ORBIT_SPEED * Math.pow(ORBIT_FIRST / radius, 1.5),
+        speed: ORBIT_SPEED * Math.pow(ORBIT_REF / radius, 1.5),
       }
     })
   }
