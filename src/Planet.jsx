@@ -30,7 +30,7 @@ const HAS_MOONS = new Set(GRAPH.citations.map(c => c.article))
 
 // livePos: a Vector3 the scene updates every frame (orbital drift)
 // onOpen: clicking a planet opens its article (App flies the camera in first)
-export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fade = "none", onOpen, onHoverChange, reducedMotion }) {
+export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fade = "none", onOpen, onHoverChange, reducedMotion, labelsHidden }) {
   const groupRef = useRef()
   const scaleRef = useRef()
   const spinRef  = useRef()
@@ -79,7 +79,7 @@ export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fa
     }
   })
 
-  const showLabel = hovered || isSelected || isHighlighted || isFocused
+  const showLabel = !labelsHidden && (hovered || isSelected || isHighlighted || isFocused)
 
   return (
     <group ref={groupRef} position={livePos}>

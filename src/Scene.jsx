@@ -185,6 +185,9 @@ export function Scene({
   const tween     = useRef(null)
   const homeRef   = useRef({ active: true })          // camera is at the home view
   const savedView = useRef(null)                      // where to return from the reader
+  // From the moment a fly-in starts until the flight back out ends: no
+  // planet/moon labels, and moons fade away rather than loom at close range
+  const [flying, setFlying] = useState(false)
   const insetRef  = useRef(rightInset)
   insetRef.current = rightInset
 
@@ -240,6 +243,7 @@ export function Scene({
       home: homeRef.current.active,
     }
     homeRef.current.active = false
+    setFlying(true)
     const pos = live.get(enterTarget.id)
     const R = planetRadius(blogData.nodes.find(n => n.id === enterTarget.id).readTime)
     const approach = camera.position.clone().sub(pos).normalize()
@@ -257,6 +261,7 @@ export function Scene({
     startTween(saved.home ? () => home() : { pos: saved.pos, target: saved.target }, {
       duration: 1.0,
       onDone: () => {
+        setFlying(false)
         homeRef.current.active = saved.home
         controlsRef.current.minDistance = MIN_DISTANCE
       },
@@ -356,12 +361,12 @@ export function Scene({
 
       <group>
         <Nebulae clusters={layout.clusters} filteredIds={filteredIds} reducedMotion={reducedMotion} />
-        <ClusterNames clusters={layout.clusters} highlighted={clusterFilter} />
+        <ClusterNames clusters={layout.clusters} highlighted={clusterFilter} hidden={flying} />
 
         {/* Resting state shows planets only; moons and related arcs appear
             for active planets */}
         <RelatedArcs live={live} articles={articles} isActive={isActive} reducedMotion={reducedMotion} />
-        <Moons live={live} articles={articles} isActive={isActive} focusedRef={focusedRef}
+        <Moons live={live} articles={articles} isActive={isActive} focusedRef={focusedRef} suppressed={flying}
           onHoverChange={onMoonHoverChange} reducedMotion={reducedMotion} />
 
         {articles.map(node => {
@@ -382,6 +387,7 @@ export function Scene({
               isFocused={focusedId === node.id}
               fade={fade}
               onOpen={onEnter}
+              labelsHidden={flying}
               onHoverChange={onHoverChange}
               reducedMotion={reducedMotion}
             />

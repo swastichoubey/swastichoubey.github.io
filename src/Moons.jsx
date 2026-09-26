@@ -54,6 +54,8 @@ attribute float aAlpha;
 attribute float aHover;
 varying vec3 vWorldNormal;
 varying vec3 vWorldPos;
+varying vec3 vObj;
+varying float vSeed;
 varying float vAlpha;
 varying float vHover;
 void main() {
@@ -61,25 +63,44 @@ void main() {
   vec4 wp = m * vec4(position, 1.0);
   vWorldPos = wp.xyz;
   vWorldNormal = normalize(mat3(m) * normal);
+  vObj = position;
+  vSeed = float(gl_InstanceID) * 7.31;
   vAlpha = aAlpha;
   vHover = aHover;
   gl_Position = projectionMatrix * viewMatrix * wp;
 }
 `
 
+// Low-contrast rocky surface: mottling plus a few darker patches, so moons
+// read as bodies rather than smooth spheres when seen up close.
 const FRAGMENT = /* glsl */ `
 uniform vec3 uColor;
 uniform vec3 uLightDir;
 varying vec3 vWorldNormal;
 varying vec3 vWorldPos;
+varying vec3 vObj;
+varying float vSeed;
 varying float vAlpha;
 varying float vHover;
+
+float hash(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.yzx + 33.33); return fract((p.x + p.y) * p.z); }
+float vnoise(vec3 p) {
+  vec3 i = floor(p), f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(hash(i), hash(i + vec3(1, 0, 0)), f.x), mix(hash(i + vec3(0, 1, 0)), hash(i + vec3(1, 1, 0)), f.x), f.y),
+             mix(mix(hash(i + vec3(0, 0, 1)), hash(i + vec3(1, 0, 1)), f.x), mix(hash(i + vec3(0, 1, 1)), hash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
+
 void main() {
   vec3 N = normalize(vWorldNormal);
   vec3 V = normalize(cameraPosition - vWorldPos);
+  vec3 q = vObj * 3.0 + vSeed;
+  float mottle = vnoise(q) * 0.65 + vnoise(q * 2.3) * 0.35;
+  float patches = smoothstep(0.62, 0.78, vnoise(vObj * 2.0 + vSeed * 1.7));
+  vec3 albedo = uColor * mix(0.78, 1.05, mottle) * (1.0 - 0.22 * patches);
   float diffuse = clamp((dot(N, uLightDir) + 0.1) / 1.1, 0.0, 1.0);
   float rim = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 2.5);
-  vec3 col = uColor * (0.12 + 0.8 * diffuse) + vec3(0.75, 0.82, 0.95) * rim * (0.35 + 0.9 * vHover);
+  vec3 col = albedo * (0.12 + 0.8 * diffuse) + vec3(0.75, 0.82, 0.95) * rim * (0.35 + 0.9 * vHover);
   gl_FragColor = vec4(col, vAlpha);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -100,7 +121,8 @@ function moonOffset(moon, t, out) {
 
 // isActive(articleId) → should this planet's moons show right now
 // onHoverChange(moon | null) → a moon gained / lost the pointer
-export function Moons({ live, articles, isActive, focusedRef, onHoverChange, reducedMotion }) {
+// suppressed: hide every moon and label (camera is flying into a planet)
+export function Moons({ live, articles, isActive, focusedRef, onHoverChange, reducedMotion, suppressed }) {
   const articlesById = useMemo(() => new Map(articles.map(a => [a.id, a])), [articles])
   const moons = useMemo(() => buildMoons(articles.map(a => a.id), articlesById), [articles, articlesById])
   const n = moons.length
@@ -138,7 +160,7 @@ export function Moons({ live, articles, isActive, focusedRef, onHoverChange, red
 
   // Keyboard: a focused reference link highlights its moon and shows its label
   const focusedIndex = focusedRef ? moons.findIndex(m => m.key === focusedRef) : -1
-  const labelIndex = hovered ?? (focusedIndex >= 0 ? focusedIndex : null)
+  const labelIndex = suppressed ? null : hovered ?? (focusedIndex >= 0 ? focusedIndex : null)
   const labelMoon = labelIndex != null ? moons[labelIndex] : null
 
   useFrame((_, dt) => {
@@ -151,7 +173,7 @@ export function Moons({ live, articles, isActive, focusedRef, onHoverChange, red
     const vis = visibility.current
     for (const a of articles) {
       const v = vis.get(a.id) ?? 0
-      vis.set(a.id, v + ((isActive(a.id) ? 1 : 0) - v) * k)
+      vis.set(a.id, v + ((!suppressed && isActive(a.id) ? 1 : 0) - v) * k)
     }
 
     moons.forEach((moon, i) => {
