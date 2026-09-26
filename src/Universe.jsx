@@ -8,7 +8,7 @@ export default function Universe({ frameloop, onPointerMissed, ...sceneProps }) 
   return (
     <Canvas
       camera={{ position: [4, 14, 28], fov: 52 }}
-      dpr={[1, 2]}
+      dpr={1}   // starts at 1x; Scene steps up once frame rate proves it can
       frameloop={frameloop}
       gl={{ antialias: false, alpha: false, powerPreference: "high-performance" }}
       onPointerMissed={onPointerMissed}

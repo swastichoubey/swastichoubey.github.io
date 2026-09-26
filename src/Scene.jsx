@@ -43,29 +43,48 @@ function isSoftwareRenderer(gl) {
   return /swiftshader|llvmpipe|software|basic render/i.test(name)
 }
 
-// Degrades in steps when frame rate stays low: first render at 1x pixel
-// ratio, then drop bloom. Never climbs back within a session, so the scene
-// doesn't oscillate between quality levels.
+const MAX_DPR = Math.min(window.devicePixelRatio || 1, 2)
+
+// Starts at 1x pixel ratio and steps up to the device's (capped at 2) only
+// after ~3s of sustained 55+ fps. If the higher ratio then can't hold 50fps
+// it drops back to 1x for good; a machine that can't hold 50fps at 1x loses
+// bloom instead. Never oscillates between levels within a session. Sampling
+// starts after a short warm-up so shader compilation doesn't count.
 function useAdaptiveQuality() {
   const { gl, setDpr } = useThree()
-  const [bloom, setBloom] = useState(() => !isSoftwareRenderer(gl))
-  const declines = useRef(0)
   const dpr = useThree(s => s.viewport.dpr)
-  const onDecline = () => {
-    declines.current += 1
-    if (declines.current === 1) setDpr(1)
-    else setBloom(false)
+  const [bloom, setBloom] = useState(() => !isSoftwareRenderer(gl))
+  const [monitoring, setMonitoring] = useState(false)
+  const q = useRef({ steppedUp: false, locked: false })
+
+  useEffect(() => {
+    const t = setTimeout(() => setMonitoring(true), 1500)
+    return () => clearTimeout(t)
+  }, [])
+
+  const onIncline = () => {
+    if (q.current.steppedUp || q.current.locked || MAX_DPR <= 1) return
+    q.current.steppedUp = true
+    setDpr(MAX_DPR)
   }
+  const onDecline = () => {
+    if (q.current.steppedUp && !q.current.locked) { q.current.locked = true; setDpr(1); return }
+    q.current.locked = true
+    setBloom(false)
+  }
+
   // Current quality level, readable from devtools or tests: data-quality on <canvas>
-  useEffect(() => { gl.domElement.dataset.quality = `dpr=${dpr} bloom=${bloom} declines=${declines.current}` }, [gl, dpr, bloom])
-  return { bloom, dpr, onDecline }
+  useEffect(() => {
+    gl.domElement.dataset.quality = `dpr=${dpr} bloom=${bloom} steppedUp=${q.current.steppedUp} locked=${q.current.locked}`
+  }, [gl, dpr, bloom])
+  return { bloom, dpr, monitoring, onIncline, onDecline }
 }
 
 export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, reducedMotion }) {
   const controlsRef = useRef()
   const { camera }  = useThree()
   const layout      = useMemo(() => computeLayout(), [])
-  const { bloom, dpr, onDecline } = useAdaptiveQuality()
+  const { bloom, dpr, monitoring, onIncline, onDecline } = useAdaptiveQuality()
   const size = useThree(s => s.size)
 
   // @react-three/postprocessing only resizes its buffers when the canvas's
@@ -260,8 +279,11 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
         })}
       </group>
 
-      {/* Declines when most samples over ~2.5s fall under 50fps (60Hz) */}
-      <PerformanceMonitor onDecline={onDecline} bounds={rate => rate > 100 ? [60, 100] : [50, 60]} />
+      {/* 12 samples x 250ms: inclines when >75% of ~3s is at 55+ fps,
+          declines when >75% is under 50 */}
+      {monitoring && (
+        <PerformanceMonitor iterations={12} bounds={() => [50, 55]} onIncline={onIncline} onDecline={onDecline} />
+      )}
 
       {/* Bloom only catches HDR values: star surfaces, coronas and the rims
           of recent planets. Lit surfaces stay below the threshold, so
