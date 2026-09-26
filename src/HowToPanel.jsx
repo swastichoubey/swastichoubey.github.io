@@ -6,11 +6,10 @@ import { TOPBAR_TOP, TOPBAR_RIGHT, TOPBAR_GAP, TOPBAR_SIZE, TOPBAR_RADIUS } from
 
 const STEPS = [
   { icon: "▦", text: "Don't want to explore the planets? Click the grid icon, top right, for a flat list of every article." },
-  { icon: "✋", text: "Drag to rotate, scroll to zoom. Click a planet for details, click empty space to close it." },
+  { icon: "✋", text: "Drag to rotate, scroll to zoom. Click a planet to fly in and open the article." },
   { icon: "◐", text: "Color and surface mark the article type (see legend, top left). Size is read time; a brighter glow means newer." },
   { icon: "○", text: "Hover a planet to reveal its references as moons. Hover a moon for its details, click it to open the source." },
-  { icon: "↗", text: "Read Article opens the full piece in the details panel." },
-  { icon: "◈", text: "Use Highlights to jump to picks, or filter by type and tag." },
+  { icon: "◈", text: "Use Highlights to jump to picks (with details), or filter by type and category." },
   { icon: "◎", text: "Open About, top right, for Swasti's bio." },
   { icon: "⇥", text: "Keyboard: Tab through the planets and their references; Enter opens the article or source." },
 ]

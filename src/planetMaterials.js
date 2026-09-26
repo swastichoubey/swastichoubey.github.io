@@ -217,9 +217,9 @@ void main() {
   float gran = fbm(p * 9.0 + vec3(0.0, uTime * 0.06, uTime * 0.04)) * 0.5 + 0.5;
   float spots = fbm(p * 2.5 + uTime * 0.02) * 0.5 + 0.5;
   float limb = 0.55 + 0.45 * pow(clamp(dot(N, V), 0.0, 1.0), 0.6);
-  vec3 hot = mix(uColor, vec3(1.0, 0.92, 0.75), 0.3);
+  vec3 hot = mix(uColor, vec3(1.0, 0.92, 0.75), 0.25);
   vec3 col = mix(uColor * 0.7, hot, gran) * limb * mix(0.8, 1.0, spots)
-           * (0.9 + 0.6 * uGlow) * (1.0 + 0.25 * uHover);
+           * (0.72 + 0.3 * uGlow) * (1.0 + 0.25 * uHover);
 ${FRAGMENT_TAIL}`,
 }
 
@@ -317,10 +317,10 @@ varying vec2 vUv;
 void main() {
   vec2 c = vUv * 2.0 - 1.0;
   float d = length(c);
-  float falloff = pow(clamp(1.0 - d, 0.0, 1.0), 2.5);
+  float falloff = pow(clamp(1.0 - d, 0.0, 1.0), 3.0);
   float ang = atan(c.y, c.x);
   float rays = 0.85 + 0.15 * sin(ang * 7.0 + uTime * 0.3) * sin(ang * 3.0 - uTime * 0.2);
-  vec3 col = uColor * falloff * rays * (0.6 + 1.4 * uGlow) * uOpacity;
+  vec3 col = uColor * falloff * rays * (0.35 + 0.55 * uGlow) * uOpacity;
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>

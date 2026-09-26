@@ -2,9 +2,9 @@ import { useRef, useState, useMemo, useEffect } from "react"
 import { useFrame } from "@react-three/fiber"
 import { Html, Billboard } from "@react-three/drei"
 import * as THREE from "three"
-import { THEME } from "./theme"
-import { glassChip } from "./glass"
+import { THEME, TYPE_LABELS } from "./theme"
 import { planetRadius, recencyGlow } from "./encoding"
+import { GRAPH } from "./graph.generated"
 import {
   createPlanetMaterial, createRingMaterial, createCoronaMaterial, RING_INNER, RING_OUTER,
 } from "./planetMaterials"
@@ -26,9 +26,11 @@ function seedFrom(id) {
 }
 
 const _center = new THREE.Vector3()
+const HAS_MOONS = new Set(GRAPH.citations.map(c => c.article))
 
 // livePos: a Vector3 the scene updates every frame (orbital drift)
-export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fade = "none", onSelect, onHoverChange, reducedMotion }) {
+// onOpen: clicking a planet opens its article (App flies the camera in first)
+export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fade = "none", onOpen, onHoverChange, reducedMotion }) {
   const groupRef = useRef()
   const scaleRef = useRef()
   const spinRef  = useRef()
@@ -88,7 +90,7 @@ export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fa
             geometry={SPHERE}
             material={material}
             scale={radius}
-            onClick={e => { e.stopPropagation(); onSelect(node) }}
+            onClick={e => { e.stopPropagation(); onOpen(node) }}
             onPointerOver={e => { e.stopPropagation(); setHovered(true); onHoverChange?.(node.id); document.body.style.cursor = "pointer" }}
             onPointerOut={() => { setHovered(false); onHoverChange?.(null); document.body.style.cursor = "default" }}
           />
@@ -101,7 +103,7 @@ export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fa
 
         {corona && (
           <Billboard>
-            <mesh geometry={QUAD} material={corona} scale={radius * 5} raycast={noRaycast} />
+            <mesh geometry={QUAD} material={corona} scale={radius * 3.2} raycast={noRaycast} />
           </Billboard>
         )}
 
@@ -115,25 +117,27 @@ export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fa
         )}
       </group>
 
+      {/* In-world label: constant size on screen, hanging down from just
+          under the planet — or under its moon ring, when it has one — so it
+          never covers the planet or its moons. */}
       {showLabel && (
-        <Html distanceFactor={16} center zIndexRange={[50, 60]} style={{ pointerEvents: "none" }}>
+        <Html position={[0, -(HAS_MOONS.has(node.id) ? radius * 1.6 + 1.0 : radius * 1.18), 0]} zIndexRange={[50, 60]} style={{ pointerEvents: "none" }}>
           <div style={{
-            ...glassChip(color, active),
-            padding: "4px 10px",
-            color: "#f1f5f9",
-            fontSize: "10px",
+            transform: "translate(-50%, 6px)",
+            width: "max-content", maxWidth: "240px",
+            padding: "5px 10px",
+            background: "rgba(9, 11, 26, 0.9)",
+            border: `1px solid ${color}55`,
+            borderRadius: "8px",
             fontFamily: "'DM Mono', monospace",
-            whiteSpace: "nowrap",
-            maxWidth: "220px",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            letterSpacing: "0.03em",
             textAlign: "center",
-            // Html scales with distance (distanceFactor), so this offset is
-            // effectively in world units: clears the planet at any zoom.
-            marginTop: `${radius * 1.12 * 118 + 20}px`,
           }}>
-            {node.title}
+            <div style={{ fontSize: "11px", color: "#f1f5f9", lineHeight: 1.35, letterSpacing: "0.02em" }}>
+              {node.title}
+            </div>
+            <div style={{ fontSize: "9px", color: "#aab4c3", marginTop: "3px", letterSpacing: "0.08em" }}>
+              <span style={{ color }}>{TYPE_LABELS[node.type]}</span> · {node.date}
+            </div>
           </div>
         </Html>
       )}

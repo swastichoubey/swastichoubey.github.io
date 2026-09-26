@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useEffect } from "react"
-import { useFrame } from "@react-three/fiber"
+import { useFrame, useThree } from "@react-three/fiber"
 import { Html } from "@react-three/drei"
 import * as THREE from "three"
 import { GRAPH } from "./graph.generated"
@@ -16,6 +16,7 @@ import { KEY_LIGHT_DIR } from "./planetMaterials"
 
 const MOON_RADIUS = 0.17
 const HIT_RADIUS  = 0.4
+const MIN_MOON_PX = 7      // radius: moons never render smaller than ~14px across
 const ORBIT_SPEED = 0.12   // rad/s
 const SPHERE = new THREE.SphereGeometry(1, 20, 14)
 
@@ -104,6 +105,8 @@ export function Moons({ live, articles, isActive, focusedRef, onHoverChange, red
   const moons = useMemo(() => buildMoons(articles.map(a => a.id), articlesById), [articles, articlesById])
   const n = moons.length
 
+  const camera = useThree(s => s.camera)
+  const viewHeight = useThree(s => s.size.height)
   const visualRef = useRef()
   const hitRef = useRef()
   const labelRef = useRef()
@@ -140,6 +143,8 @@ export function Moons({ live, articles, isActive, focusedRef, onHoverChange, red
 
   useFrame((_, dt) => {
     if (!visualRef.current || !hitRef.current) return
+    // world units per screen pixel at unit distance
+    const unitsPerPx = (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / viewHeight
     // Moons hold still while one is under the pointer
     if (!reducedMotion && hovered == null) orbitT.current += dt * ORBIT_SPEED
     const k = 1 - Math.exp(-dt * 10)   // ~300ms to settle
@@ -153,11 +158,14 @@ export function Moons({ live, articles, isActive, focusedRef, onHoverChange, red
       const v = vis.get(moon.article)
       moonOffset(moon, orbitT.current, _p).add(live.get(moon.article))
       const shown = v > 0.01
-      _s.setScalar(shown ? MOON_RADIUS * (0.4 + 0.6 * v) * (i === labelIndex ? 1.35 : 1) : 0)
+      // Zoomed out, grow moons so they stay at least MIN_MOON_PX in radius
+      const minR = MIN_MOON_PX * unitsPerPx * _p.distanceTo(camera.position)
+      const r = Math.max(MOON_RADIUS, minR)
+      _s.setScalar(shown ? r * (0.4 + 0.6 * v) * (i === labelIndex ? 1.35 : 1) : 0)
       _m.compose(_p, _q, _s)
       visualRef.current.setMatrixAt(i, _m)
       // Hidden moons get a zero-size hit sphere, so they can't be hovered
-      _s.setScalar(shown && v > 0.5 ? HIT_RADIUS : 0)
+      _s.setScalar(shown && v > 0.5 ? Math.max(HIT_RADIUS, r * 1.8) : 0)
       _m.compose(_p, _q, _s)
       hitRef.current.setMatrixAt(i, _m)
       alphaAttr.array[i] = v
@@ -181,7 +189,9 @@ export function Moons({ live, articles, isActive, focusedRef, onHoverChange, red
   if (n === 0) return null
   return (
     <>
-      <instancedMesh ref={visualRef} args={[geometry, material, n]} frustumCulled={false} raycast={() => null} />
+      {/* renderOrder: drawn after coronas (which don't write depth), so a
+          star's glow never washes over its moons */}
+      <instancedMesh ref={visualRef} args={[geometry, material, n]} frustumCulled={false} raycast={() => null} renderOrder={10} />
       <instancedMesh
         ref={hitRef}
         args={[SPHERE, hitMaterial, n]}
