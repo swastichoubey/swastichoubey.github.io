@@ -3,6 +3,12 @@ title: "The Proxy Problem: Why Aligning AI Is Harder Than Simply Saying What You
 date: 2026-09
 readTime: 20
 type: exploratory
+cluster: Alignment
+tags:
+  - AI Safety
+  - Evals
+  - Alignment
+excerpt: 'A proxy is never quite the same as intent, and optimization only widens the gap between them — on outer and inner misalignment, two 2026 incidents that turned this from philosophy into engineering, and why evaluation awareness might be the hardest problem left.'
 kicker: [Alignment, Deception, Evaluation Awareness]
 dek: Why Aligning AI Is Harder Than Simply Saying What You Want.
 heroImage:
@@ -10,6 +16,54 @@ heroImage:
   alt: Two light trails, one blue and networked, one gold and granular, diverging from a single point of origin against black
 colophon: "I wrote the article on paper and then abused OCR to digitize it. Then I worked with an AI editor across structural, factual-verification, and grammar passes, and in a couple of technical passages incorporated suggested phrasing."
 substackUrl: "https://hybridantic.substack.com/p/the-proxy-problem"
+references:
+  - id: bondarenko-2025-specification-gaming
+    title: Demonstrating specification gaming in reasoning models
+    authors: Bondarenko et al.
+    year: 2025
+    url: 'https://arxiv.org/abs/2502.13295'
+    kind: Paper
+    note: 'Palisade Research: reasoning models hacking the game environment to beat Stockfish.'
+  - id: hubinger-2019-learned-optimization
+    title: Risks from Learned Optimization in Advanced Machine Learning Systems
+    authors: Hubinger et al.
+    year: 2019
+    url: 'https://arxiv.org/abs/1906.01820'
+    kind: Paper
+  - id: langosco-2021-goal-misgeneralization
+    title: Goal Misgeneralization in Deep Reinforcement Learning
+    authors: Langosco et al.
+    year: 2021
+    url: 'https://arxiv.org/abs/2105.14111'
+    kind: Paper
+  - id: metr-2026-hugging-face-incident
+    title: 'Brief independent investigation of agents'' behavior, reasoning and collaboration in the OpenAI / Hugging Face hacking incident'
+    authors: METR
+    year: 2026
+    url: 'https://metr.org/blog/2026-08-26-openai-hugging-face-incident-investigation/'
+    kind: Report
+  - id: mit-ai-risk-priorities
+    title: Priority AI risks
+    authors: MIT AI Risk Initiative
+    url: 'https://airisk.mit.edu/priorities'
+    kind: Report
+  - id: openai-gpt-6-astra-system-card
+    title: GPT-6 Astra System Card
+    authors: OpenAI
+    url: 'https://deploymentsafety.openai.com/gpt-6-astra/safety-overview-gpt-6-astra'
+    kind: Report
+  - id: lynch-2025-agentic-misalignment
+    title: 'Agentic Misalignment: How LLMs Could Be Insider Threats'
+    authors: Lynch et al.
+    year: 2025
+    url: 'https://arxiv.org/abs/2510.05179'
+    kind: Paper
+  - id: anthropic-2026-cybersecurity-incidents
+    title: An alignment assessment of recent cybersecurity incidents
+    authors: Anthropic
+    year: 2026
+    url: 'https://www.anthropic.com/research/alignment-assessment-cybersecurity-incidents'
+    kind: Report
 ---
 
 :::callout{label="A note on spelling"}

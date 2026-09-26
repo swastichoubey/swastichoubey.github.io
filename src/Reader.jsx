@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react"
 import { THEME, TYPE_LABELS } from "./theme"
 import { ARTICLES } from "./readerContent"
 import { ARTICLES as GENERATED_ARTICLES } from "./readerContent.generated"
+import { GRAPH } from "./graph.generated"
 import { glassPanel, glassPanelLight, SPRING, EASE_OUT } from "./glass"
 import emailjs from "@emailjs/browser"
 
@@ -738,6 +739,47 @@ function NightSky() {
   )
 }
 
+// ─── References ───────────────────────────────────────────────────────────────
+// Same data that feeds the universe's reference moons (graph.generated.js).
+// Deliberately plain — the reader redesign will restyle it.
+const REFERENCES_BY_ID = new Map(GRAPH.references.map(r => [r.id, r]))
+
+function referencesFor(articleId) {
+  return GRAPH.citations
+    .filter(c => c.article === articleId)
+    .map(c => REFERENCES_BY_ID.get(c.reference))
+}
+
+function References({ articleId, fonts, sizes, isDark, accent }) {
+  const refs = referencesFor(articleId)
+  if (refs.length === 0) return null
+  const p = isDark ? PALETTE.dark : PALETTE.light
+
+  return (
+    <section aria-labelledby="reader-references" style={{
+      marginTop: "2.4em", paddingTop: "1.2em", borderTop: `1px solid ${p.border}`,
+    }}>
+      <h2 id="reader-references" style={{ fontFamily: fonts.heading, fontSize: sizes.h3,
+        color: p.text, fontWeight: 600, margin: "0 0 0.8em" }}>References</h2>
+      <ol style={{ fontFamily: fonts.body, fontSize: sizes.body, color: p.text,
+        lineHeight: 1.6, paddingLeft: "1.4em", margin: 0 }}>
+        {refs.map(ref => {
+          const byline = [ref.authors, ref.year && `(${ref.year})`].filter(Boolean).join(" ")
+          return (
+            <li key={ref.id} style={{ marginBottom: "0.6em", overflowWrap: "anywhere" }}>
+              {byline && <>{byline}. </>}
+              {ref.url
+                ? <a href={ref.url} target="_blank" rel="noopener noreferrer"
+                    style={{ color: accent }}>{ref.title}</a>
+                : ref.title}
+            </li>
+          )
+        })}
+      </ol>
+    </section>
+  )
+}
+
 // ─── Main Reader ──────────────────────────────────────────────────────────────
 export function Reader({ nodeId, onClose, backLabel = "Universe" }) {
   const article = ACTIVE_ARTICLES[nodeId]
@@ -890,6 +932,8 @@ export function Reader({ nodeId, onClose, backLabel = "Universe" }) {
           {article.blocks.map((block, i) => (
             <Block key={i} block={block} fonts={fonts} sizes={sizes} isDark={isDark} accent={p.accent} />
           ))}
+
+          <References articleId={nodeId} fonts={fonts} sizes={sizes} isDark={isDark} accent={p.accent} />
 
           <ActionRow isDark={isDark} articleTitle={article.title} />
 

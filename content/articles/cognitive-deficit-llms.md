@@ -3,6 +3,19 @@ title: Cognitive Deficit Due to Over-Reliance on LLMs
 date: 2026-04
 readTime: 10
 type: exploratory
+cluster: Miscellaneous
+tags:
+  - AI Safety
+  - Cognitive Science
+excerpt: 'A personal account of skill atrophy from LLM offloading, backed by the MIT ''Your Brain on ChatGPT'' study and observations of teams adopting Cursor and Claude Code.'
+references:
+  - id: kosmyna-2025-brain-on-chatgpt
+    title: 'Your Brain on ChatGPT: Accumulation of Cognitive Debt when Using an AI Assistant for Essay Writing Task'
+    authors: Kosmyna et al.
+    year: 2025
+    url: 'https://arxiv.org/abs/2506.08872'
+    kind: Paper
+    note: 'Study on cognitive skill atrophy from LLM offloading, with a focus on the impact of ChatGPT on writing and reasoning skills.'
 ---
 
 A couple months back, I had to write a one line follow-up email so I sat down to write it and was stumped. Instantly I opened Claude to take care of it but then thought it is just a single line, let me do it. I then took 3 minutes to write it after which I still pasted it in Claude to proof-read it. After I hit send, I was hit with an existential crisis because I used to be able to write a 1000 words easily, I had a fairly good score in TOEFL, and was very well versed in both emailing etiquette as well as the subject of the email so why the struggle to write a single line? This was the point where I realized that by offloading tasks to LLMs I was doing critical damage to myself because offloading isn't just convenient, it's substitutive and rather than extending your thinking, it replaces it.

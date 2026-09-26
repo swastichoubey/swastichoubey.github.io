@@ -25,13 +25,15 @@ const ALL_TAGS = [...new Set(
 
 const ALL_TYPES = ["exploratory", "experimental", "opinion", "project"]
 
-// Static highlights list (featured + most recent, no dupes)
-const recent = [...blogData.nodes]
+// Static highlights list (everything from the newest month + featured, no
+// dupes). Dates are month-precision, so "most recent" can be a tie — take the
+// whole month rather than letting file order pick a winner.
+const published = blogData.nodes
   .filter(n => n.date && !n.draft && n.type !== "ref" && n.type !== "about")
   .sort((a, b) => b.date.localeCompare(a.date))
-  .slice(0, 1)
+const recent = published.filter(n => n.date === published[0]?.date)
 
-const featured  = blogData.nodes.filter(n => n.featured && !n.draft)
+const featured  = published.filter(n => n.featured)
 const highlights = [
   ...recent,
   ...featured.filter(n => !recent.find(r => r.id === n.id)),

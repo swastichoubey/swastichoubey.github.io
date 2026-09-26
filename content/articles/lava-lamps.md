@@ -3,6 +3,12 @@ title: How Lava Lamps Help With Internet Encryption
 date: 2023-04
 readTime: 6
 type: exploratory
+cluster: Miscellaneous
+tags:
+  - Security
+  - Research
+excerpt: 'Computers run on logic, which makes them bad at randomness — and randomness is load-bearing for encryption. How Cloudflare solved this with 100 lava lamps and a camera.'
+featured: true
 ---
 
 Encryption is the process of encoding information so that only authorised parties can access it — transforming plaintext into ciphertext using an algorithm and a key. The key controls both encryption and decryption. Every new key must be random, and this is where computers have a fundamental problem.

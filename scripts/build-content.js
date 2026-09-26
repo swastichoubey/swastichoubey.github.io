@@ -1,6 +1,8 @@
 // Converts content/articles/*.md (frontmatter + Markdown body) into the same
 // { [id]: { title, date, readTime, type, blocks, ... } } shape Reader.jsx
-// consumes. Output is generated, not hand-edited.
+// consumes, plus graph.generated.js (article metadata, references, citations)
+// for the universe and the reader's reference list. Output is generated, not
+// hand-edited.
 //
 // Inline markdown (links, bold, italic, inline code) is serialized back to
 // flat markdown-syntax strings rather than kept as a rich AST, because
@@ -24,6 +26,7 @@ import remarkDirective from "remark-directive"
 const root = dirname(dirname(fileURLToPath(import.meta.url)))
 const contentDir = join(root, "content", "articles")
 const outFile = join(root, "src", "readerContent.generated.js")
+const graphFile = join(root, "src", "graph.generated.js")
 
 const processor = unified().use(remarkParse).use(remarkGfm).use(remarkDirective)
 
@@ -142,21 +145,113 @@ function convertBlock(node) {
   }
 }
 
+// ─── Article metadata + reference graph ─────────────────────────────────────
+// Frontmatter is the single source of truth for article metadata. Fields:
+//   title, date (YYYY-MM), readTime, type          required
+//   cluster                                         required, one of CLUSTERS
+//   excerpt, tags                                   used by the universe/grid
+//   featured: true                                  appears in highlights panel
+//   draft: true                                     hidden everywhere
+//   publishedAt: { platform: url }                  opens externally instead of the reader
+//   related: [article-id]                           hand-declared link between articles
+//   references:                                     external sources cited by the article
+//     - id: author-year-keyword                     stable slug, shared across articles
+//       title, authors, year, url                   kind, note optional
+// A file with frontmatter but no body is metadata-only (external or unwritten
+// articles) and gets no reader entry.
+
+const TYPES = ["exploratory", "experimental", "opinion", "project"]
+const CLUSTERS = ["Alignment", "Evals", "AI Control", "RAG", "Miscellaneous"]
+
+const warnings = []
+const warn = (file, msg) => warnings.push(`${file}: ${msg}`)
+
+// YAML turns a full YYYY-MM-DD into a Date; keep everything as a plain string.
+function normalizeDate(value) {
+  if (value instanceof Date) return value.toISOString().slice(0, 10)
+  return value === undefined ? undefined : String(value)
+}
+
+// arXiv abs/pdf/html variants and trailing slashes point at the same thing.
+function normalizeUrl(url) {
+  return url
+    .replace(/^http:/, "https:")
+    .replace(/arxiv\.org\/(pdf|html)\//, "arxiv.org/abs/")
+    .replace(/(arxiv\.org\/abs\/\d+\.\d+)(v\d+)?(\.pdf)?/, "$1")
+    .replace(/#.*$/, "")
+    .replace(/\/$/, "")
+}
+
 const OPTIONAL_FRONTMATTER = ["kicker", "meta", "dek", "heroImage", "colophon", "substackUrl"]
 
 const articles = {}
+const graphArticles = []
+const references = new Map()   // id → merged reference
+const citations = []
 const files = readdirSync(contentDir).filter(f => f.endsWith(".md")).sort()
 
 for (const file of files) {
   const id = file.replace(/\.md$/, "")
   const raw = readFileSync(join(contentDir, file), "utf8")
   const { data, content } = matter(raw)
+
+  for (const key of ["title", "date", "readTime", "type", "cluster"]) {
+    if (data[key] === undefined) warn(file, `missing \`${key}\``)
+  }
+  if (data.type !== undefined && !TYPES.includes(data.type)) warn(file, `unknown type "${data.type}"`)
+  if (data.cluster !== undefined && !CLUSTERS.includes(data.cluster)) warn(file, `unknown cluster "${data.cluster}" (expected one of ${CLUSTERS.join(", ")})`)
+  if (!data.draft && !data.excerpt) warn(file, "missing `excerpt`")
+
+  graphArticles.push({
+    id,
+    title: String(data.title),
+    type: data.type,
+    cluster: data.cluster ?? null,
+    date: normalizeDate(data.date),
+    readTime: data.readTime,
+    excerpt: data.excerpt ?? "",
+    tags: data.tags ?? [],
+    featured: data.featured === true,
+    draft: data.draft === true,
+    publishedAt: data.publishedAt ?? null,
+    related: data.related ?? [],
+  })
+
+  const seenInArticle = new Set()
+  for (const ref of data.references ?? []) {
+    if (!ref.id) { warn(file, `reference without an \`id\` (title: ${ref.title ?? "?"})`); continue }
+    if (seenInArticle.has(ref.id)) { warn(file, `reference "${ref.id}" listed twice`); continue }
+    seenInArticle.add(ref.id)
+
+    const existing = references.get(ref.id)
+    if (!existing) {
+      references.set(ref.id, { ...ref, citedBy: [id] })
+    } else {
+      // Same id cited again — the first declaration wins, later ones may only
+      // fill in fields it left out. Disagreements are almost always a typo or
+      // two different papers sharing a slug.
+      for (const key of ["title", "authors", "year", "url"]) {
+        if (ref[key] === undefined) continue
+        if (existing[key] === undefined) existing[key] = ref[key]
+        else if (String(existing[key]) !== String(ref[key])) {
+          warn(file, `reference "${ref.id}" has ${key} ${JSON.stringify(ref[key])}, but ${existing.citedBy[0]} declares ${JSON.stringify(existing[key])}`)
+        }
+      }
+      existing.citedBy.push(id)
+    }
+    citations.push({ article: id, reference: ref.id })
+  }
+
+  // Metadata-only files (no body) don't get a reader entry, so hand-written
+  // holdouts in readerContent.js with the same id keep working.
+  if (!content.trim()) continue
+
   const tree = processor.parse(content)
   const blocks = tree.children.map(convertBlock)
 
   const article = {
     title: String(data.title),
-    date: String(data.date),
+    date: normalizeDate(data.date),
     readTime: data.readTime,
     type: data.type,
   }
@@ -168,9 +263,50 @@ for (const file of files) {
   articles[id] = article
 }
 
-const banner = "// AUTO-GENERATED by scripts/build-content.js — do not hand-edit.\n// Source: content/articles/*.md\n\n"
-const body = "export const ARTICLES = " + JSON.stringify(articles, null, 2) + "\n"
-writeFileSync(outFile, banner + body)
+// Cross-file checks
+const articleIds = new Set(graphArticles.map(a => a.id))
+const relatedPairs = new Map()
+for (const a of graphArticles) {
+  for (const other of a.related) {
+    if (other === a.id) { warn(`${a.id}.md`, "lists itself in `related`"); continue }
+    if (!articleIds.has(other)) { warn(`${a.id}.md`, `related article "${other}" does not exist`); continue }
+    const pair = [a.id, other].sort()
+    relatedPairs.set(pair.join("|"), pair)
+  }
+}
+const byUrl = new Map()
+for (const ref of references.values()) {
+  // Checked on the merged record, so a shared reference only needs its full
+  // details in one of the articles citing it.
+  const where = `${ref.citedBy[0]}.md`
+  if (!ref.title) warn(where, `reference "${ref.id}" is missing \`title\``)
+  if (!ref.year) warn(where, `reference "${ref.id}" is missing \`year\``)
+  if (!ref.url) warn(where, `reference "${ref.id}" has no \`url\``)
+  if (articleIds.has(ref.id)) warn(where, `reference id "${ref.id}" collides with an article id`)
+  if (!ref.url) continue
+  const key = normalizeUrl(ref.url)
+  if (byUrl.has(key)) warn(where, `references "${byUrl.get(key)}" and "${ref.id}" point to the same URL — should they share an id?`)
+  else byUrl.set(key, ref.id)
+}
 
-console.log(`Wrote ${Object.keys(articles).length} article(s) to ${outFile}`)
+const referenceList = [...references.values()]
+const graph = {
+  articles: graphArticles,
+  references: referenceList,
+  citations,
+  related: [...relatedPairs.values()],
+  sharedReferences: referenceList.filter(r => r.citedBy.length >= 2).map(r => r.id),
+}
+
+const banner = "// AUTO-GENERATED by scripts/build-content.js — do not hand-edit.\n// Source: content/articles/*.md\n\n"
+writeFileSync(outFile, banner + "export const ARTICLES = " + JSON.stringify(articles, null, 2) + "\n")
+writeFileSync(graphFile, banner + "export const GRAPH = " + JSON.stringify(graph, null, 2) + "\n")
+
+console.log(`Wrote ${Object.keys(articles).length} reader article(s) to ${outFile}`)
 for (const id of Object.keys(articles)) console.log(`  - ${id}`)
+console.log(`Wrote graph to ${graphFile}: ${graphArticles.length} articles, ${referenceList.length} references, ${citations.length} citations, ${graph.sharedReferences.length} shared, ${graph.related.length} related pair(s)`)
+
+if (warnings.length) {
+  console.warn(`\n${warnings.length} content warning(s):`)
+  for (const w of warnings) console.warn(`  ⚠ ${w}`)
+}

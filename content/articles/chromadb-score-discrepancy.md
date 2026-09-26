@@ -3,6 +3,15 @@ title: Chasing a Score Discrepancy Through Eight Layers of ChromaDB
 date: 2026-07
 readTime: 10
 type: experimental
+cluster: Evals
+tags:
+  - Evals
+  - RAG
+  - Research
+excerpt: 'Identical code, identical corpus, identical embeddings — two production environments that still disagreed on every confidence score. An eight-layer elimination that ended without a clean answer.'
+featured: true
+related:
+  - emb-eval
 kicker: [Reproducibility, Evaluation, ChromaDB]
 dek: Identical code, identical corpus, identical embeddings and two production environments that still disagreed on every confidence score.
 heroImage:
@@ -16,6 +25,21 @@ meta:
   - label: Test Queries
     value: "29"
 colophon: "Investigation conducted with Claude (I was called stupid about 4 individual times). Header image generated with ChatGPT"
+references:
+  - id: malkov-2018-hnsw
+    title: Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs
+    authors: Malkov & Yashunin
+    year: 2018
+    url: 'https://arxiv.org/abs/1603.09320'
+    kind: Paper
+    note: 'Malkov & Yashunin, 2018 — the paper behind the approximate index at the root of the discrepancy.'
+  - id: chroma-2025-v1-release
+    title: ChromaDB v1.0 Release — Rust Rewrite Announcement
+    authors: Chroma
+    year: 2025
+    url: 'https://trychroma.com/blog/2025-04-24-chroma-1.0'
+    kind: Docs
+    note: Official announcement of the Rust-core rewrite that changed the API path from SegmentAPI to RustBindingsAPI.
 ---
 
 This is the technical follow-up to [an earlier post](https://swastichoubey.github.io/emb-eval) on choosing an embedding model for a telephony retrieval system. That post covers how I landed on **static-similarity-mrl-multilingual-v1** after comparing it against MPNet and a few other candidates. This one covers what happened after I moved that setup from my local notebook to a shared environment — and the eight-layer elimination chain it took to understand why the numbers changed.
