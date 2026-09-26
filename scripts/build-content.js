@@ -295,6 +295,7 @@ for (const ref of references.values()) {
 
 const referenceList = [...references.values()]
 const graph = {
+  clusters: CLUSTERS,
   articles: graphArticles,
   references: referenceList,
   citations,

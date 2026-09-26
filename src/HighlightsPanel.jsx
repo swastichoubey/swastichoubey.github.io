@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { motion } from "motion/react"
-import { blogData } from "./data"
+import { blogData, visibleClusters } from "./data"
 import { THEME, TYPE_LABELS } from "./theme"
 import { glassPanel, glassCard, glassCardHover, glassDock, SPRING, EASE_OUT } from "./glass"
 import { TOPBAR_TOP, TOPBAR_RIGHT, TOPBAR_SIZE } from "./chrome"
@@ -16,12 +16,6 @@ function nodeColor(node) {
   if (node.type === "about") return THEME.about
   return THEME[node.type] || "#ffffff"
 }
-
-const ALL_TAGS = [...new Set(
-  blogData.nodes
-    .filter(n => n.type !== "ref" && n.type !== "about" && !n.draft)
-    .flatMap(n => n.tags || [])
-)].sort()
 
 const ALL_TYPES = ["exploratory", "experimental", "opinion", "project"]
 
@@ -40,11 +34,12 @@ const highlights = [
 ].slice(0, 4)
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-function articlePassesFilter(node, activeTags, activeTypes) {
+// Types and clusters each match any selected value; the two combine with AND.
+function articlePassesFilter(node, activeClusters, activeTypes) {
   if (node.type === "ref" || node.type === "about" || node.draft) return false
-  const typeOk = activeTypes.size === 0 || activeTypes.has(node.type)
-  const tagOk  = activeTags.size  === 0 || [...activeTags].every(t => node.tags?.includes(t))
-  return typeOk && tagOk
+  const typeOk    = activeTypes.size    === 0 || activeTypes.has(node.type)
+  const clusterOk = activeClusters.size === 0 || activeClusters.has(node.cluster)
+  return typeOk && clusterOk
 }
 
 function FilterPill({ label, color, active, onClick }) {
@@ -96,8 +91,8 @@ function HighlightCard({ node, onSelect, onFlyTo }) {
 }
 
 export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onHide }) {
-  const [activeTags,  setActiveTags]  = useState(new Set())
-  const [activeTypes, setActiveTypes] = useState(new Set())
+  const [activeClusters, setActiveClusters] = useState(new Set())
+  const [activeTypes,    setActiveTypes]    = useState(new Set())
   const [showTooltip, setShowTooltip] = useState(true)
 
   useEffect(() => {
@@ -107,20 +102,20 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
 
   // Notify parent whenever filters change
   useEffect(() => {
-    onFilterChange({ tags: activeTags, types: activeTypes })
-  }, [activeTags, activeTypes])
+    onFilterChange({ clusters: activeClusters, types: activeTypes })
+  }, [activeClusters, activeTypes])
 
-  const toggleTag  = tag  => setActiveTags(p  => { const n = new Set(p); n.has(tag)  ? n.delete(tag)  : n.add(tag);  return n })
-  const toggleType = type => setActiveTypes(p => { const n = new Set(p); n.has(type) ? n.delete(type) : n.add(type); return n })
-  const clearFilters = () => { setActiveTags(new Set()); setActiveTypes(new Set()) }
+  const toggleCluster = c    => setActiveClusters(p => { const n = new Set(p); n.has(c)    ? n.delete(c)    : n.add(c);    return n })
+  const toggleType    = type => setActiveTypes(p    => { const n = new Set(p); n.has(type) ? n.delete(type) : n.add(type); return n })
+  const clearFilters = () => { setActiveClusters(new Set()); setActiveTypes(new Set()) }
 
-  const hasFilters = activeTags.size > 0 || activeTypes.size > 0
+  const hasFilters = activeClusters.size > 0 || activeTypes.size > 0
 
   // Count matching articles so we can show empty state
   const matchCount = useMemo(() => {
     if (!hasFilters) return null
-    return blogData.nodes.filter(n => articlePassesFilter(n, activeTags, activeTypes)).length
-  }, [activeTags, activeTypes, hasFilters])
+    return blogData.nodes.filter(n => articlePassesFilter(n, activeClusters, activeTypes)).length
+  }, [activeClusters, activeTypes, hasFilters])
 
   if (hidden) {
     return (
@@ -218,12 +213,12 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
         ))}
       </div>
 
-      {/* Tag pills */}
+      {/* Cluster pills — only clusters with a published article */}
       <div style={{ fontSize: "9px", color: "#475569", marginBottom: "6px" }}>Category:</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-        {ALL_TAGS.map(tag => (
-          <FilterPill key={tag} label={tag} color="#94a3b8"
-            active={activeTags.has(tag)} onClick={() => toggleTag(tag)} />
+        {visibleClusters.map(cluster => (
+          <FilterPill key={cluster} label={cluster} color="#94a3b8"
+            active={activeClusters.has(cluster)} onClick={() => toggleCluster(cluster)} />
         ))}
       </div>
 

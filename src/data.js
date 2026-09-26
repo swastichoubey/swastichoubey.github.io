@@ -9,7 +9,8 @@ const draftIds = new Set(GRAPH.articles.filter(a => a.draft).map(a => a.id))
 
 // Clusters with at least one published article. A cluster made only of
 // drafts doesn't render (Control stays hidden until its first article ships).
-export const visibleClusters = [...new Set(GRAPH.articles.filter(a => !a.draft).map(a => a.cluster))]
+// Kept in the canonical order from build-content.js.
+export const visibleClusters = GRAPH.clusters.filter(c => GRAPH.articles.some(a => a.cluster === c && !a.draft))
 
 const articleNodes = GRAPH.articles.map(a => ({
   id:          a.id,

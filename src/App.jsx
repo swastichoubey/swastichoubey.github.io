@@ -20,14 +20,14 @@ import { useReducedMotion } from "./useReducedMotion"
 const MOBILE_BREAKPOINT = 768
 
 function nodePassesFilter(node, filters) {
-  const { tags, types } = filters
-  // Refs always pass — they are moons, not articles, not subject to type/tag filters
+  const { clusters, types } = filters
+  // Refs always pass — they are moons, not articles, not subject to type/cluster filters
   if (node.type === "ref") return true
   // Drafts always pass visually (they show dimmed regardless)
   if (node.draft) return true
   const typeMatch = types.size === 0 || types.has(node.type)
-  const tagMatch  = tags.size  === 0 || [...tags].every(t => node.tags?.includes(t))
-  return typeMatch && tagMatch
+  const clusterMatch = clusters.size === 0 || clusters.has(node.cluster)
+  return typeMatch && clusterMatch
 }
 
 function handleReadExternal(node) {
@@ -47,7 +47,7 @@ export default function App() {
   const [selected,      setSelected]      = useState(null)
   const [flyTarget,     setFlyTarget]     = useState(null)
   const [panelHidden,   setPanelHidden]   = useState(false)
-  const [filters,       setFilters]       = useState({ tags: new Set(), types: new Set() })
+  const [filters,       setFilters]       = useState({ clusters: new Set(), types: new Set() })
   const [aboutView,     setAboutView]     = useState(null)
   const [focusedId,     setFocusedId]     = useState(null)
   // Stop rendering the scene entirely while the tab is hidden.
@@ -85,7 +85,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState)
   }, [])
 
-  const hasActiveFilter = filters.tags.size > 0 || filters.types.size > 0
+  const hasActiveFilter = filters.clusters.size > 0 || filters.types.size > 0
 
   // filteredIds — null means no filter.
   const filteredIds = useMemo(() => {

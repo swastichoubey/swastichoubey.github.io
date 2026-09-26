@@ -97,19 +97,6 @@ export function InfoPanel({ node, onClose, onRead }) {
         {node.excerpt}
       </p>
 
-      {/* Tags */}
-      {node.tags?.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "5px", marginBottom: "16px" }}>
-          {node.tags.map(tag => (
-            <span key={tag} style={{
-              fontSize: "9px", padding: "2px 8px", borderRadius: "4px",
-              background: `${color}18`, border: `1px solid ${color}33`, color,
-              letterSpacing: "0.06em",
-            }}>{tag}</span>
-          ))}
-        </div>
-      )}
-
       {/* Connected nodes */}
       {related.length > 0 && (
         <>
