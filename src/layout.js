@@ -1,14 +1,10 @@
 import { blogData, isVisible } from "./data"
 
-const ABOUT_POSITION = { x: 0, y: 0, z: 0 }
-
 export function computeLayout() {
   const nodes   = blogData.nodes.filter(isVisible)
-  const mains   = nodes.filter(n => n.type !== "ref" && n.id !== "about")
+  const mains   = nodes.filter(n => n.type !== "ref")
   const refs    = nodes.filter(n => n.type === "ref")
   const positions = {}
-
-  positions["about"] = ABOUT_POSITION
 
   // Main nodes — wider spread, more z-depth for better tilted-camera look
   const mainR = 13
@@ -38,5 +34,3 @@ export function computeLayout() {
 
   return positions
 }
-
-export { ABOUT_POSITION }

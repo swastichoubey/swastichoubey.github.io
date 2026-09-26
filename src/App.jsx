@@ -13,6 +13,9 @@ import { Reader } from "./Reader"
 import { MobileView } from "./MobileView"
 import { blogData } from "./data"
 import { Astra } from "./Astra"
+import { AboutButton } from "./AboutButton"
+import { PlanetNav } from "./PlanetNav"
+import { useReducedMotion } from "./useReducedMotion"
 
 const MOBILE_BREAKPOINT = 768
 
@@ -22,8 +25,6 @@ function nodePassesFilter(node, filters) {
   if (node.type === "ref") return true
   // Drafts always pass visually (they show dimmed regardless)
   if (node.draft) return true
-  // About node: never matches type/tag filters — will be faded
-  if (node.type === "about") return false
   const typeMatch = types.size === 0 || types.has(node.type)
   const tagMatch  = tags.size  === 0 || [...tags].every(t => node.tags?.includes(t))
   return typeMatch && tagMatch
@@ -47,8 +48,11 @@ export default function App() {
   const [flyTarget,     setFlyTarget]     = useState(null)
   const [panelHidden,   setPanelHidden]   = useState(false)
   const [filters,       setFilters]       = useState({ tags: new Set(), types: new Set() })
-  const [aboutExpanded, setAboutExpanded] = useState(false)
   const [aboutView,     setAboutView]     = useState(null)
+  const [focusedId,     setFocusedId]     = useState(null)
+  // Stop rendering the scene entirely while the tab is hidden.
+  const [frameloop,     setFrameloop]     = useState(document.hidden ? "never" : "always")
+  const reducedMotion = useReducedMotion()
   const [gridView,      setGridView]      = useState(false)
   // Where the reader was opened from, so its back button can both label
   // itself correctly and land somewhere real — "grid" or null (universe /
@@ -58,6 +62,12 @@ export default function App() {
     const id = decodeURIComponent(window.location.pathname.replace(/^\//, ""))
     return readableNode(id)?.id ?? null
   })
+
+  useEffect(() => {
+    const onVisibility = () => setFrameloop(document.hidden ? "never" : "always")
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => document.removeEventListener("visibilitychange", onVisibility)
+  }, [])
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
@@ -77,14 +87,13 @@ export default function App() {
 
   const hasActiveFilter = filters.tags.size > 0 || filters.types.size > 0
 
-  // filteredIds — null means no filter. About node included in fade when filter active.
+  // filteredIds — null means no filter.
   const filteredIds = useMemo(() => {
     if (!hasActiveFilter) return null
     return new Set(
       blogData.nodes
         .filter(n => nodePassesFilter(n, filters))
         .map(n => n.id)
-      // Note: about node NOT included → it will fade with filters
     )
   }, [filters, hasActiveFilter])
 
@@ -100,25 +109,16 @@ export default function App() {
 
   const handleSelect = node => {
     if (node.draft) return
-    if (node.type === "about") {
-      const next = !aboutExpanded
-      setAboutExpanded(next)
-      setSelected(null)
-      setAboutView(next ? "about" : null)
-      if (!next) setPanelHidden(false)
-      if (next) handleFlyTo(node.id)
-      return
-    }
-    setAboutExpanded(false)
     setAboutView(null)
     const deselecting = selected?.id === node.id
     setSelected(deselecting ? null : node)
     if (!deselecting) handleFlyTo(node.id)
   }
 
-  // Clicking a moon (or a tab) loads that section into the panel
-  const handleSpokeClick = view => {
-    setAboutView(view)
+  const toggleAbout = () => {
+    setSelected(null)
+    setAboutView(v => v ? null : "about")
+    setPanelHidden(false)
   }
 
   const handleFlyTo = nodeId => {
@@ -135,7 +135,6 @@ export default function App() {
   const handleCloseInfo  = () => { setSelected(null); setPanelHidden(false) }
   const handleCloseAbout = () => {
     setAboutView(null)
-    setAboutExpanded(false)
     setPanelHidden(false)
   }
   const handleCloseReader = () => {
@@ -148,7 +147,6 @@ export default function App() {
 
   const handlePointerMissed = () => {
     if (selected) { setSelected(null); setPanelHidden(false) }
-    if (aboutView && !aboutExpanded) setAboutView(null)
   }
 
   const showAboutPanel = !!aboutView
@@ -181,7 +179,9 @@ export default function App() {
         <>
           <Canvas
             camera={{ position: [4, 14, 28], fov: 52 }}
-            gl={{ antialias: true, alpha: false }}
+            dpr={[1, 2]}
+            frameloop={readerNodeId ? "never" : frameloop}
+            gl={{ antialias: false, alpha: false, powerPreference: "high-performance" }}
             onPointerMissed={handlePointerMissed}
           >
             <Suspense fallback={null}>
@@ -190,9 +190,8 @@ export default function App() {
                 onSelect={handleSelect}
                 flyTarget={flyTarget}
                 filteredIds={filteredIds}
-                aboutExpanded={aboutExpanded}
-                aboutView={aboutView}
-                onSpokeClick={handleSpokeClick}
+                focusedId={focusedId}
+                reducedMotion={reducedMotion}
               />
             </Suspense>
           </Canvas>
@@ -223,6 +222,8 @@ export default function App() {
 
           <Legend />
           <Astra />
+          <AboutButton active={showAboutPanel} onClick={toggleAbout} />
+          {!readerNodeId && <PlanetNav onFocusChange={setFocusedId} onOpen={openReader} />}
         </>
       )}
 

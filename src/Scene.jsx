@@ -1,12 +1,15 @@
-import { useRef, useMemo, useEffect } from "react"
+import { useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
-import { OrbitControls, Stars } from "@react-three/drei"
+import { OrbitControls, Stars, PerformanceMonitor } from "@react-three/drei"
+import { EffectComposer, Bloom, ToneMapping, SMAA } from "@react-three/postprocessing"
+import { ToneMappingMode } from "postprocessing"
 import * as THREE from "three"
 import { Node } from "./Node"
+import { Planet } from "./Planet"
 import { Edge } from "./Edge"
-import { AboutSpokes } from "./AboutSpokes"
 import { blogData } from "./data"
 import { computeLayout } from "./layout"
+import { KEY_LIGHT_DIR } from "./planetMaterials"
 
 // Camera position and its look-at target are shifted by the same amount on
 // X — a pure lateral pan, not a re-aim — so the universe renders shifted
@@ -20,12 +23,38 @@ const DEFAULT_CAM_TARGET = new THREE.Vector3(0 + HOME_SHIFT_X, -1, 0)
 const _flyTarget  = new THREE.Vector3()
 const _flyCamDest = new THREE.Vector3()
 
-export function Scene({ selected, onSelect, flyTarget, filteredIds, aboutExpanded, aboutView, onSpokeClick }) {
+const KEY_LIGHT_POS = KEY_LIGHT_DIR.clone().multiplyScalar(40)
+
+// Software rasterizers can't sustain bloom; skip it outright there.
+function isSoftwareRenderer(gl) {
+  const ctx = gl.getContext()
+  const info = ctx.getExtension("WEBGL_debug_renderer_info")
+  const name = info ? ctx.getParameter(info.UNMASKED_RENDERER_WEBGL) : ""
+  return /swiftshader|llvmpipe|software|basic render/i.test(name)
+}
+
+// Degrades in steps when frame rate stays low: first render at 1x pixel
+// ratio, then drop bloom. Never climbs back within a session, so the scene
+// doesn't oscillate between quality levels.
+function useAdaptiveQuality() {
+  const { gl, setDpr } = useThree()
+  const [bloom, setBloom] = useState(() => !isSoftwareRenderer(gl))
+  const declines = useRef(0)
+  const onDecline = () => {
+    declines.current += 1
+    if (declines.current === 1) setDpr(1)
+    else setBloom(false)
+  }
+  return { bloom, onDecline }
+}
+
+export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, reducedMotion }) {
   const groupRef    = useRef()
   const controlsRef = useRef()
   const spinRef     = useRef(0.022)   // eased auto-rotation speed
   const { camera }  = useThree()
   const positions   = useMemo(() => computeLayout(), [])
+  const { bloom, onDecline } = useAdaptiveQuality()
 
   useEffect(() => {
     camera.position.copy(DEFAULT_CAM_POS)
@@ -56,12 +85,11 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, aboutExpande
     }
   }, [flyTarget])
 
-  const hasFilter     = filteredIds !== null
-  const aboutFadeAll  = aboutExpanded && !selected  // when about open, dim everything else
+  const hasFilter = filteredIds !== null
 
   useFrame((_, dt) => {
     // Auto-rotation eases to a stop during selection/fly instead of snapping
-    const spinTarget = (!selected && !flyRef.current && !aboutExpanded) ? 0.022 : 0
+    const spinTarget = (!selected && !flyRef.current && !reducedMotion) ? 0.022 : 0
     spinRef.current += (spinTarget - spinRef.current) * (1 - Math.exp(-dt * 3))
     if (groupRef.current) groupRef.current.rotation.y += dt * spinRef.current
 
@@ -69,6 +97,7 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, aboutExpande
     // The destination is recomputed each frame from the node's layout position
     // rotated by the scene group's current spin, so the body lands dead-center
     // in the viewport even if the universe was mid-rotation when clicked.
+    // Reduced motion jumps straight to the destination.
     if (flyRef.current) {
       const pos = positions[flyRef.current.nodeId]
       const ry  = groupRef.current ? groupRef.current.rotation.y : 0
@@ -76,7 +105,7 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, aboutExpande
       _flyTarget.set(pos.x * cos + pos.z * sin, pos.y, -pos.x * sin + pos.z * cos)
       _flyCamDest.set(_flyTarget.x, _flyTarget.y + 3, _flyTarget.z + 9)
 
-      flyRef.current.t = Math.min(flyRef.current.t + dt * 0.8, 1)
+      flyRef.current.t = reducedMotion ? 1 : Math.min(flyRef.current.t + dt * 0.8, 1)
       const ease = 1 - Math.pow(1 - flyRef.current.t, 5)
       camera.position.lerpVectors(flyRef.current.startPos, _flyCamDest, ease)
       if (controlsRef.current) {
@@ -86,17 +115,13 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, aboutExpande
     }
   })
 
-  const aboutPos = positions["about"] || { x: 0, y: 0, z: 0 }
-
   return (
     <>
       <color attach="background" args={["#05050f"]} />
-      <ambientLight intensity={0.35} />
-      <pointLight position={[12, 10, 8]}    intensity={1.4} color="#a78bfa" />
-      <pointLight position={[-12, -6, -10]} intensity={0.7} color="#34d399" />
-      <pointLight position={[0, 18, 0]}     intensity={0.4} color="#f8fafc" />
+      <ambientLight intensity={0.12} />
+      <directionalLight position={KEY_LIGHT_POS} intensity={2.2} />
 
-      <Stars radius={90} depth={60} count={4000} factor={3.5} saturation={0} fade speed={0.4} />
+      <Stars radius={90} depth={60} count={4000} factor={3.5} saturation={0} fade speed={reducedMotion ? 0 : 0.4} />
 
       <OrbitControls
         ref={controlsRef}
@@ -122,54 +147,53 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, aboutExpande
             !connectedIds.has(edge.source) || !connectedIds.has(edge.target)
           )
           const isH = !!(selected && connectedIds.has(edge.source) && connectedIds.has(edge.target))
-          // About-mode is a soft dim (-60%); filter/selection is a hard fade
-          const fade = (filterFade || selectFade) ? "hard" : aboutFadeAll ? "soft" : "none"
+          const fade = (filterFade || selectFade) ? "hard" : "none"
 
           return <Edge key={i} start={sp} end={ep} isHighlighted={isH} fade={fade} />
         })}
 
-        {/* Nodes */}
+        {/* Planets and reference dots */}
         {blogData.nodes.map(node => {
           const pos = positions[node.id]
           if (!pos) return null
 
-          // Filter fade: about node fades with everything when filter is active
           const filterFaded = hasFilter && !filteredIds.has(node.id)
-
-          // About-expanded: soft dim (-60%) for everything except About itself —
-          // the About planet and its moons stay at full presence
-          const aboutFaded = aboutFadeAll && node.id !== "about"
-
-          // Select fade: everything not connected to selected node
           const selectFaded = !!(selected && !connectedIds.has(node.id))
-
-          const fade = (filterFaded || selectFaded) ? "hard"
-            : aboutFaded ? "soft"
-            : "none"
+          const fade = (filterFaded || selectFaded) ? "hard" : "none"
           const isSelected    = selected?.id === node.id
           const isHighlighted = !!(selected && connectedIds.has(node.id) && node.id !== selected.id)
 
+          const Body = node.type === "ref" ? Node : Planet
           return (
-            <Node
+            <Body
               key={node.id}
               node={node}
               position={pos}
               isSelected={isSelected}
               isHighlighted={isHighlighted}
+              isFocused={focusedId === node.id}
               fade={fade}
               onSelect={onSelect}
+              reducedMotion={reducedMotion}
             />
           )
         })}
-
-        {/* About moons — clickable, each opens its tab in the panel */}
-        <AboutSpokes
-          centerPos={aboutPos}
-          expanded={aboutExpanded}
-          activeView={aboutView}
-          onSpokeClick={onSpokeClick}
-        />
       </group>
+
+      <PerformanceMonitor onDecline={onDecline} />
+
+      {/* Bloom only catches HDR values: star surfaces, coronas and the rims
+          of recent planets. Lit surfaces stay below the threshold, so
+          planets keep crisp edges instead of turning into blurry blobs.
+          SMAA instead of MSAA: 4x multisampling on the half-float buffers
+          cost ~12fps on an Intel UHD 620; SMAA costs ~0. */}
+      {bloom && (
+        <EffectComposer multisampling={0}>
+          <Bloom mipmapBlur luminanceThreshold={0.85} luminanceSmoothing={0.2} intensity={0.9} radius={0.6} />
+          <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+          <SMAA />
+        </EffectComposer>
+      )}
     </>
   )
 }

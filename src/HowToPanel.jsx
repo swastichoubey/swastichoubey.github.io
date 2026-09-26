@@ -7,11 +7,12 @@ import { TOPBAR_TOP, TOPBAR_RIGHT, TOPBAR_GAP, TOPBAR_SIZE, TOPBAR_RADIUS } from
 const STEPS = [
   { icon: "▦", text: "Don't want to explore the planets? Click the grid icon, top right, for a flat list of every article." },
   { icon: "✋", text: "Drag to rotate, scroll to zoom. Click a node for details, click empty space to close it." },
-  { icon: "◐", text: "Dot color marks the article type (see legend, top left). Dashed ring means draft." },
+  { icon: "◐", text: "Color and surface mark the article type (see legend, top left). Size is read time; a brighter glow means newer." },
   { icon: "○", text: "Small moons around a node are references — click one for its source." },
   { icon: "↗", text: "Read Article opens the full piece in the details panel." },
   { icon: "◈", text: "Use Highlights to jump to picks, or filter by type and tag." },
-  { icon: "◎", text: "Click the white planet for Swasti's bio." },
+  { icon: "◎", text: "Open About, top right, for Swasti's bio." },
+  { icon: "⇥", text: "Keyboard: Tab through the planets, Enter opens the article." },
 ]
 
 export function HowToPanel() {

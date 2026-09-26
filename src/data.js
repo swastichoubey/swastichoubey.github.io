@@ -5,15 +5,6 @@
 // the universe, grid and panels consume.
 import { GRAPH } from "./graph.generated"
 
-const ABOUT_NODE = {
-  id: "about",
-  type: "about",
-  title: "Swasti",
-  excerpt: "Researcher & builder at the intersection of AI systems and the humans who build and use them.",
-  tags: [],
-  fixed: true,
-}
-
 const draftIds = new Set(GRAPH.articles.filter(a => a.draft).map(a => a.id))
 
 // Clusters with at least one published article. A cluster made only of
@@ -47,7 +38,7 @@ const refNodes = GRAPH.references.map(r => ({
 }))
 
 export const blogData = {
-  nodes: [ABOUT_NODE, ...articleNodes, ...refNodes],
+  nodes: [...articleNodes, ...refNodes],
   edges: [
     ...GRAPH.citations.map(c => ({ source: c.article, target: c.reference })),
     ...GRAPH.related.map(([source, target]) => ({ source, target })),
