@@ -1,6 +1,6 @@
 import { useRef, useMemo, useEffect, useState } from "react"
 import { useFrame, useThree } from "@react-three/fiber"
-import { OrbitControls, Stars, PerformanceMonitor } from "@react-three/drei"
+import { OrbitControls, PerformanceMonitor } from "@react-three/drei"
 import { EffectComposer, Bloom, ToneMapping, SMAA } from "@react-three/postprocessing"
 import { ToneMappingMode } from "postprocessing"
 import * as THREE from "three"
@@ -8,7 +8,9 @@ import { Node } from "./Node"
 import { Planet } from "./Planet"
 import { Edge } from "./Edge"
 import { blogData } from "./data"
-import { computeLayout } from "./layout"
+import { computeLayout, orbitPosition } from "./layout"
+import { Starfield } from "./Starfield"
+import { Nebulae } from "./Nebula"
 import { KEY_LIGHT_DIR } from "./planetMaterials"
 
 // Camera position and its look-at target are shifted by the same amount on
@@ -19,9 +21,17 @@ const HOME_SHIFT_X       = 4
 const DEFAULT_CAM_POS    = new THREE.Vector3(4 + HOME_SHIFT_X, 14, 28)
 const DEFAULT_CAM_TARGET = new THREE.Vector3(0 + HOME_SHIFT_X, -1, 0)
 
-// Scratch vectors for the per-frame fly-to destination (avoid per-frame allocs)
+// Scratch vectors (avoid per-frame allocs)
 const _flyTarget  = new THREE.Vector3()
 const _flyCamDest = new THREE.Vector3()
+const _offset     = new THREE.Vector3()
+const _right      = new THREE.Vector3()
+const _up         = new THREE.Vector3(0, 1, 0)
+
+// Mouse parallax: the camera orbits a few degrees toward the cursor, damped.
+const PARALLAX_YAW   = THREE.MathUtils.degToRad(3)
+const PARALLAX_PITCH = THREE.MathUtils.degToRad(2)
+const PARALLAX_DAMP  = 2.5
 
 const KEY_LIGHT_POS = KEY_LIGHT_DIR.clone().multiplyScalar(40)
 
@@ -54,9 +64,9 @@ function useAdaptiveQuality() {
 export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, reducedMotion }) {
   const groupRef    = useRef()
   const controlsRef = useRef()
-  const spinRef     = useRef(0.022)   // eased auto-rotation speed
+  const spinRef     = useRef(reducedMotion ? 0 : 0.022)   // eased auto-rotation speed
   const { camera }  = useThree()
-  const positions   = useMemo(() => computeLayout(), [])
+  const layout      = useMemo(() => computeLayout(), [])
   const { bloom, dpr, onDecline } = useAdaptiveQuality()
   const size = useThree(s => s.size)
 
@@ -71,6 +81,36 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
     if (controlsRef.current) controlsRef.current.target.copy(DEFAULT_CAM_TARGET)
   }, [])
 
+  // ── Orbital drift ─────────────────────────────────────────────────────────
+  // One Vector3 per visible body, updated in place every frame; planets,
+  // reference dots and edges read from it. Drift time slows to a stop while
+  // anything is hovered, focused or selected, so a body never slides out
+  // from under the cursor.
+  const live = useMemo(() => {
+    const m = new Map()
+    for (const [id, orbit] of Object.entries(layout.orbits)) m.set(id, orbitPosition(orbit, 0, new THREE.Vector3()))
+    for (const [id, off] of Object.entries(layout.refOffsets)) m.set(id, m.get(off.parent).clone().add(off))
+    return m
+  }, [layout])
+  // Dev-only handle for automated checks (camera, controls, live positions)
+  useEffect(() => {
+    if (import.meta.env.DEV) window.__universe = { camera, controls: controlsRef, live, drift }
+  })
+
+  const hoveredRef = useRef(null)
+  const onHoverChange = id => { hoveredRef.current = id }
+  const drift = useRef({ t: 0, speed: reducedMotion ? 0 : 1 })
+
+  const paused = !!(selected || focusedId)
+  useFrame((_, dt) => {
+    const d = drift.current
+    const goal = (reducedMotion || paused || hoveredRef.current) ? 0 : 1
+    d.speed += (goal - d.speed) * (1 - Math.exp(-dt * 6))
+    d.t += dt * d.speed
+    for (const [id, orbit] of Object.entries(layout.orbits)) orbitPosition(orbit, d.t, live.get(id))
+    for (const [id, off] of Object.entries(layout.refOffsets)) live.get(id).copy(live.get(off.parent)).add(off)
+  }, -3)
+
   const connectedIds = useMemo(() => {
     if (!selected) return new Set()
     const ids = new Set([selected.id])
@@ -84,7 +124,7 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
   const flyRef = useRef(null)
   useMemo(() => {
     if (!flyTarget) { flyRef.current = null; return }
-    if (!positions[flyTarget]) return
+    if (!live.has(flyTarget)) return
     flyRef.current = {
       nodeId:      flyTarget,
       startPos:    camera.position.clone(),
@@ -95,21 +135,40 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
     }
   }, [flyTarget])
 
+  // ── Mouse parallax ────────────────────────────────────────────────────────
+  // Applied after OrbitControls each frame and removed before its next
+  // update, so the controls never see (or accumulate) the offset. Held still
+  // while dragging, and off entirely under reduced motion.
+  const parallax = useRef({ x: 0, y: 0, applied: new THREE.Vector3(), dragging: false })
+  useEffect(() => {
+    const c = controlsRef.current
+    if (!c) return
+    const start = () => { parallax.current.dragging = true }
+    const end   = () => { parallax.current.dragging = false }
+    c.addEventListener("start", start)
+    c.addEventListener("end", end)
+    return () => { c.removeEventListener("start", start); c.removeEventListener("end", end) }
+  }, [])
+  useFrame(() => {
+    camera.position.sub(parallax.current.applied)
+    parallax.current.applied.set(0, 0, 0)
+  }, -2)
+
   const hasFilter = filteredIds !== null
 
-  useFrame((_, dt) => {
-    // Auto-rotation eases to a stop during selection/fly instead of snapping
-    const spinTarget = (!selected && !flyRef.current && !reducedMotion) ? 0.022 : 0
+  useFrame((state, dt) => {
+    // Auto-rotation eases to a stop during selection/fly/hover instead of snapping
+    const spinTarget = (!selected && !flyRef.current && !reducedMotion && !hoveredRef.current && !focusedId) ? 0.022 : 0
     spinRef.current += (spinTarget - spinRef.current) * (1 - Math.exp(-dt * 3))
     if (groupRef.current) groupRef.current.rotation.y += dt * spinRef.current
 
     // Fly-to — easeOutQuint: decelerates like falling into a gravity well.
-    // The destination is recomputed each frame from the node's layout position
-    // rotated by the scene group's current spin, so the body lands dead-center
-    // in the viewport even if the universe was mid-rotation when clicked.
+    // The destination is recomputed each frame from the body's live position
+    // rotated by the scene group's current spin, so it lands dead-center even
+    // if the universe was mid-rotation when clicked.
     // Reduced motion jumps straight to the destination.
     if (flyRef.current) {
-      const pos = positions[flyRef.current.nodeId]
+      const pos = live.get(flyRef.current.nodeId)
       const ry  = groupRef.current ? groupRef.current.rotation.y : 0
       const cos = Math.cos(ry), sin = Math.sin(ry)
       _flyTarget.set(pos.x * cos + pos.z * sin, pos.y, -pos.x * sin + pos.z * cos)
@@ -123,6 +182,24 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
       }
       if (flyRef.current.t >= 1) flyRef.current = null
     }
+
+    // Parallax, last: orbit the camera a few degrees about the controls target
+    const p = parallax.current
+    if (!reducedMotion && controlsRef.current) {
+      if (!p.dragging) {
+        const k = 1 - Math.exp(-dt * PARALLAX_DAMP)
+        p.x += (state.pointer.x - p.x) * k
+        p.y += (state.pointer.y - p.y) * k
+      }
+      const target = controlsRef.current.target
+      _offset.copy(camera.position).sub(target)
+      _offset.applyAxisAngle(_up, p.x * PARALLAX_YAW)
+      _right.crossVectors(_up, _offset).normalize()
+      _offset.applyAxisAngle(_right, p.y * PARALLAX_PITCH)
+      p.applied.copy(target).add(_offset).sub(camera.position)
+      camera.position.add(p.applied)
+      camera.lookAt(target)
+    }
   })
 
   return (
@@ -131,7 +208,7 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
       <ambientLight intensity={0.12} />
       <directionalLight position={KEY_LIGHT_POS} intensity={2.2} />
 
-      <Stars radius={90} depth={60} count={4000} factor={3.5} saturation={0} fade speed={reducedMotion ? 0 : 0.4} />
+      <Starfield reducedMotion={reducedMotion} />
 
       <OrbitControls
         ref={controlsRef}
@@ -142,10 +219,12 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
       />
 
       <group ref={groupRef}>
+        <Nebulae clusters={layout.clusters} filteredIds={filteredIds} reducedMotion={reducedMotion} />
+
         {/* Edges */}
         {blogData.edges.map((edge, i) => {
-          const sp = positions[edge.source]
-          const ep = positions[edge.target]
+          const sp = live.get(edge.source)
+          const ep = live.get(edge.target)
           if (!sp || !ep) return null
 
           // Filter: fade if either endpoint is filtered out
@@ -164,8 +243,8 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
 
         {/* Planets and reference dots */}
         {blogData.nodes.map(node => {
-          const pos = positions[node.id]
-          if (!pos) return null
+          const livePos = live.get(node.id)
+          if (!livePos) return null
 
           const filterFaded = hasFilter && !filteredIds.has(node.id)
           const selectFaded = !!(selected && !connectedIds.has(node.id))
@@ -178,12 +257,13 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
             <Body
               key={node.id}
               node={node}
-              position={pos}
+              livePos={livePos}
               isSelected={isSelected}
               isHighlighted={isHighlighted}
               isFocused={focusedId === node.id}
               fade={fade}
               onSelect={onSelect}
+              onHoverChange={onHoverChange}
               reducedMotion={reducedMotion}
             />
           )

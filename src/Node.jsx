@@ -1,4 +1,5 @@
-import { useState } from "react"
+import { useState, useRef } from "react"
+import { useFrame } from "@react-three/fiber"
 import { Html } from "@react-three/drei"
 import { useSpring, animated } from "@react-spring/three"
 import { THEME } from "./theme"
@@ -11,8 +12,10 @@ import { glassChip } from "./glass"
 const FADE_OPACITY = { none: 1.0, hard: 0.18 }
 const SIZE = 0.24
 
-export function Node({ node, position, isSelected, isHighlighted, fade = "none", onSelect }) {
+export function Node({ node, livePos, isSelected, isHighlighted, fade = "none", onSelect, onHoverChange }) {
+  const groupRef = useRef()
   const [hovered, setHovered] = useState(false)
+  useFrame(() => { groupRef.current.position.copy(livePos) })
   const color = THEME.ref
 
   // Scale gets a touch of overshoot so hovers feel alive; opacity is
@@ -29,12 +32,12 @@ export function Node({ node, position, isSelected, isHighlighted, fade = "none",
   const showLabel = hovered || isSelected || isHighlighted
 
   return (
-    <group position={[position.x, position.y, position.z]}>
+    <group ref={groupRef} position={livePos}>
       <animated.mesh
         scale={scale}
         onClick={e => { e.stopPropagation(); onSelect(node) }}
-        onPointerOver={e => { e.stopPropagation(); setHovered(true); document.body.style.cursor = "pointer" }}
-        onPointerOut={() => { setHovered(false); document.body.style.cursor = "default" }}
+        onPointerOver={e => { e.stopPropagation(); setHovered(true); onHoverChange?.(node.id); document.body.style.cursor = "pointer" }}
+        onPointerOut={() => { setHovered(false); onHoverChange?.(null); document.body.style.cursor = "default" }}
       >
         <sphereGeometry args={[SIZE, 14, 14]} />
         <animated.meshPhysicalMaterial

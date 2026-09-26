@@ -27,7 +27,9 @@ function seedFrom(id) {
 
 const _center = new THREE.Vector3()
 
-export function Planet({ node, position, isSelected, isHighlighted, isFocused, fade = "none", onSelect, reducedMotion }) {
+// livePos: a Vector3 the scene updates every frame (orbital drift)
+export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fade = "none", onSelect, onHoverChange, reducedMotion }) {
+  const groupRef = useRef()
   const scaleRef = useRef()
   const spinRef  = useRef()
   const [hovered, setHovered] = useState(false)
@@ -53,6 +55,7 @@ export function Planet({ node, position, isSelected, isHighlighted, isFocused, f
     const kFast = 1 - Math.exp(-dt * 10)
     const kFade = 1 - Math.exp(-dt * 6)
     const u = material.uniforms
+    groupRef.current.position.copy(livePos)
     const s = scaleRef.current.scale.x + (targetScale - scaleRef.current.scale.x) * kFast
     scaleRef.current.scale.setScalar(s)
     u.uHover.value   += ((active ? 1 : 0) - u.uHover.value) * kFast
@@ -77,7 +80,7 @@ export function Planet({ node, position, isSelected, isHighlighted, isFocused, f
   const showLabel = hovered || isSelected || isHighlighted || isFocused
 
   return (
-    <group position={[position.x, position.y, position.z]}>
+    <group ref={groupRef} position={livePos}>
       <group ref={scaleRef}>
         <group rotation-z={tilt}>
           <mesh
@@ -86,8 +89,8 @@ export function Planet({ node, position, isSelected, isHighlighted, isFocused, f
             material={material}
             scale={radius}
             onClick={e => { e.stopPropagation(); onSelect(node) }}
-            onPointerOver={e => { e.stopPropagation(); setHovered(true); document.body.style.cursor = "pointer" }}
-            onPointerOut={() => { setHovered(false); document.body.style.cursor = "default" }}
+            onPointerOver={e => { e.stopPropagation(); setHovered(true); onHoverChange?.(node.id); document.body.style.cursor = "pointer" }}
+            onPointerOut={() => { setHovered(false); onHoverChange?.(null); document.body.style.cursor = "default" }}
           />
         </group>
 
