@@ -26,6 +26,14 @@ export function glassPanel(accent = "#a78bfa") {
   }
 }
 
+// Same look without backdrop-filter, for panels that sit over the live 3D
+// scene: blurring a canvas that changes every frame forces the compositor to
+// re-blur every frame. A near-opaque fill keeps text contrast instead.
+export function withoutBlur(style, fill = "rgba(9, 11, 26, 0.9)") {
+  const { backdropFilter, WebkitBackdropFilter, ...rest } = style
+  return { ...rest, background: rest.background.replace(/rgba\([^)]*\)\s*$/, fill) }
+}
+
 // Light-theme variant (reader chrome in day mode)
 export function glassPanelLight() {
   return {

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { motion } from "motion/react"
 import { blogData, visibleClusters } from "./data"
 import { THEME, TYPE_LABELS } from "./theme"
-import { glassPanel, glassCard, glassCardHover, glassDock, SPRING, EASE_OUT } from "./glass"
+import { glassPanel, glassCard, glassCardHover, glassDock, withoutBlur, SPRING, EASE_OUT } from "./glass"
 import { TOPBAR_TOP, TOPBAR_RIGHT, TOPBAR_SIZE } from "./chrome"
 
 // Anchored below the "?"/grid button row instead of centered on the
@@ -69,13 +69,13 @@ function HighlightCard({ node, onSelect, onFlyTo }) {
       transition={SPRING.snappy}
       style={{
         padding: "10px 12px",
-        ...glassCard(color),
+        ...withoutBlur(glassCard(color)),
         cursor: "pointer",
         transition: `border-color 0.3s ${EASE_OUT}, background 0.3s ${EASE_OUT}, box-shadow 0.3s ${EASE_OUT}`,
         marginBottom: "6px",
       }}
       onMouseEnter={e => Object.assign(e.currentTarget.style, glassCardHover(color))}
-      onMouseLeave={e => Object.assign(e.currentTarget.style, glassCard(color))}
+      onMouseLeave={e => Object.assign(e.currentTarget.style, withoutBlur(glassCard(color)))}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "5px" }}>
         <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}`, flexShrink: 0 }} />
@@ -128,7 +128,7 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
         style={{
           position: "fixed", top: "50%", right: 0,
           translateY: "-50%",
-          ...glassDock(true),
+          ...withoutBlur(glassDock(true)),
           color: "#94a3b8", fontFamily: "'DM Mono', monospace",
           fontSize: "9px", letterSpacing: "0.1em",
           padding: "16px 6px", cursor: "pointer",
@@ -147,7 +147,7 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
       style={{
         position: "fixed", top: `${PANEL_TOP}px`, right: `${TOPBAR_RIGHT}px`,
         width: "272px", maxHeight: `calc(100vh - ${PANEL_TOP + TOPBAR_TOP}px)`, overflowY: "auto",
-        ...glassPanel("#64748b"),
+        ...withoutBlur(glassPanel("#64748b")),
         padding: `${PANEL_PADDING}px`, fontFamily: "'DM Mono', monospace",
         zIndex: 50, scrollbarWidth: "none",
       }}
@@ -185,7 +185,7 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
       {hasFilters && matchCount !== null && (
         <div style={{
           padding: "8px 12px",
-          ...glassCard("#475569"),
+          ...withoutBlur(glassCard("#475569")),
           marginBottom: "10px",
           fontSize: "10px", color: "#94a3b8", lineHeight: 1.6,
         }}>
