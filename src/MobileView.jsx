@@ -1,16 +1,10 @@
 import { useState, useMemo } from "react"
-import { blogData } from "./data"
+import { blogData, visibleClusters } from "./data"
 import { THEME, TYPE_LABELS } from "./theme"
 
 function nodeColor(n) {
   return THEME[n.type] || "#94a3b8"
 }
-
-const ALL_TAGS  = [...new Set(
-  blogData.nodes
-    .filter(n => n.type !== "ref" && n.type !== "about" && !n.draft)
-    .flatMap(n => n.tags || [])
-)].sort()
 
 const ALL_TYPES = ["exploratory", "experimental", "opinion", "project"]
 
@@ -63,15 +57,13 @@ function ArticleCard({ node, onRead }) {
         {node.excerpt}
       </p>
 
-      {node.tags?.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "12px" }}>
-          {node.tags.map(tag => (
-            <span key={tag} style={{
-              fontSize: "8px", padding: "2px 7px", borderRadius: "3px",
-              background: `${color}14`, border: `1px solid ${color}22`, color,
-              letterSpacing: "0.05em", fontFamily: "'DM Mono', monospace",
-            }}>{tag}</span>
-          ))}
+      {node.cluster && (
+        <div style={{ marginBottom: "12px" }}>
+          <span style={{
+            fontSize: "8px", padding: "2px 7px", borderRadius: "3px",
+            background: "#94a3b814", border: "1px solid #94a3b833", color: "#94a3b8",
+            letterSpacing: "0.05em", fontFamily: "'DM Mono', monospace",
+          }}>{node.cluster}</span>
         </div>
       )}
 
@@ -99,23 +91,25 @@ function ArticleCard({ node, onRead }) {
   )
 }
 
+// Same filter as the desktop highlights panel: types and clusters each
+// match any selected value, and the two combine with AND.
 export function MobileView({ onRead }) {
-  const [activeTags,  setActiveTags]  = useState(new Set())
-  const [activeTypes, setActiveTypes] = useState(new Set())
+  const [activeClusters, setActiveClusters] = useState(new Set())
+  const [activeTypes,    setActiveTypes]    = useState(new Set())
 
   const articles = useMemo(() => {
     return blogData.nodes
       .filter(n => n.type !== "ref" && n.type !== "about" && !n.draft)
       .filter(n => {
-        const typeOk = activeTypes.size === 0 || activeTypes.has(n.type)
-        const tagOk  = activeTags.size  === 0 || [...activeTags].every(t => n.tags?.includes(t))
-        return typeOk && tagOk
+        const typeOk    = activeTypes.size    === 0 || activeTypes.has(n.type)
+        const clusterOk = activeClusters.size === 0 || activeClusters.has(n.cluster)
+        return typeOk && clusterOk
       })
       .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-  }, [activeTags, activeTypes])
+  }, [activeClusters, activeTypes])
 
-  const toggleTag  = t => setActiveTags(p  => { const n = new Set(p); n.has(t) ? n.delete(t) : n.add(t); return n })
-  const toggleType = t => setActiveTypes(p => { const n = new Set(p); n.has(t) ? n.delete(t) : n.add(t); return n })
+  const toggleCluster = c => setActiveClusters(p => { const n = new Set(p); n.has(c) ? n.delete(c) : n.add(c); return n })
+  const toggleType    = t => setActiveTypes(p    => { const n = new Set(p); n.has(t) ? n.delete(t) : n.add(t); return n })
 
   return (
     <div style={{
@@ -142,20 +136,28 @@ export function MobileView({ onRead }) {
       <div style={{ padding: "14px 20px", borderBottom: "1px solid #0a0f1a" }}>
         <div style={{ fontSize: "8px", color: "#334155",
           letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>
-          Filter
+          Type
         </div>
         <div style={{
           display: "flex", gap: "6px", overflowX: "auto",
-          paddingBottom: "4px", scrollbarWidth: "none",
+          paddingBottom: "4px", scrollbarWidth: "none", marginBottom: "10px",
         }}>
           {ALL_TYPES.map(t => (
             <FilterPill key={t} label={TYPE_LABELS[t]} color={THEME[t]}
               active={activeTypes.has(t)} onClick={() => toggleType(t)} />
           ))}
-          <div style={{ width: "1px", background: "#1e293b", flexShrink: 0, margin: "0 2px" }} />
-          {ALL_TAGS.map(t => (
-            <FilterPill key={t} label={t} color="#64748b"
-              active={activeTags.has(t)} onClick={() => toggleTag(t)} />
+        </div>
+        <div style={{ fontSize: "8px", color: "#334155",
+          letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "8px" }}>
+          Category
+        </div>
+        <div style={{
+          display: "flex", gap: "6px", overflowX: "auto",
+          paddingBottom: "4px", scrollbarWidth: "none",
+        }}>
+          {visibleClusters.map(c => (
+            <FilterPill key={c} label={c} color="#94a3b8"
+              active={activeClusters.has(c)} onClick={() => toggleCluster(c)} />
           ))}
         </div>
       </div>
