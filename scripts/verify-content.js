@@ -1,8 +1,13 @@
-// Deep-compares readerContent.generated.js against the current hand-written
-// readerContent.js for a given set of article ids, to verify the Markdown
-// converter is lossless before wiring it into anything.
+// Deep-compares the generated reader JSON (public/reader/<id>.json) against
+// the current hand-written readerContent.js for a given set of article ids,
+// to verify the Markdown converter is lossless before wiring it into anything.
+import { readFileSync, existsSync } from "node:fs"
 import { ARTICLES as CURRENT } from "../src/readerContent.js"
-import { ARTICLES as GENERATED } from "../src/readerContent.generated.js"
+
+const generatedPath = id => new URL(`../public/reader/${id}.json`, import.meta.url)
+const GENERATED = new Proxy({}, {
+  get: (_, id) => existsSync(generatedPath(id)) ? JSON.parse(readFileSync(generatedPath(id), "utf8")) : undefined,
+})
 
 const ids = process.argv.slice(2)
 if (ids.length === 0) {

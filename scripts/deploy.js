@@ -18,7 +18,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)))
 
 copyFileSync(join(root, "index.template.html"), join(root, "index.html"))
 
-// Regenerate readerContent.generated.js from content/articles/*.md — this
+// Regenerate the reader JSON and graph from content/articles/*.md — this
 // bypasses the predev/prebuild npm hooks (it calls vite build directly), so
 // it needs its own explicit call, same reasoning as the index.html restore.
 execSync("node scripts/build-content.js", { cwd: root, stdio: "inherit" })
@@ -48,5 +48,9 @@ try {
 } catch (err) {
   if (err.code !== "ENOENT") throw err
 }
+// Reader content (/reader/<id>.json) is replaced wholesale so removed
+// articles don't linger.
+rmSync(join(root, "reader"), { recursive: true, force: true })
+cpSync(join(root, "dist", "reader"), join(root, "reader"), { recursive: true })
 
 console.log("\nDeploy files ready at repo root. Review with `git status`, then commit and push.")

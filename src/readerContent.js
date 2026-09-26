@@ -1,8 +1,9 @@
 // ─── NATIVE READER CONTENT (hand-written holdouts) ───────────────────────────
 // Everything converted to Markdown lives in content/articles/*.md and is
-// compiled into readerContent.generated.js (see scripts/build-content.js).
-// This file holds whatever hasn't been converted yet. Reader.jsx merges both,
-// with generated entries taking precedence on id collisions.
+// compiled into public/reader/<id>.json (see scripts/build-content.js), which
+// the reader fetches on open. This file holds whatever hasn't been converted
+// yet and stays bundled; articleStore.js checks it first, so an id here must
+// not also have a Markdown body.
 
 export const ARTICLES = {
   "distillation-attacks": {

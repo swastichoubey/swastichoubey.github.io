@@ -1,4 +1,4 @@
 node_modules
 dist
-src/readerContent.generated.js
+public/reader/
 src/graph.generated.js

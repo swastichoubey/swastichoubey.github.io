@@ -1,17 +1,15 @@
 import { useState, useEffect, useRef, Fragment } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { THEME, TYPE_LABELS } from "./theme"
-import { ARTICLES } from "./readerContent"
-import { ARTICLES as GENERATED_ARTICLES } from "./readerContent.generated"
+import { useArticle } from "./articleStore"
 import { GRAPH } from "./graph.generated"
 import { glassPanel, glassPanelLight, SPRING, EASE_OUT } from "./glass"
 import emailjs from "@emailjs/browser"
 
-// readerContent.js holds whatever hasn't been converted to Markdown yet;
-// readerContent.generated.js is compiled from content/articles/*.md by
-// scripts/build-content.js (run automatically before every dev/build).
-// Generated entries win on id collisions.
-const ACTIVE_ARTICLES = { ...ARTICLES, ...GENERATED_ARTICLES }
+// Article content comes from articleStore.js: per-article JSON compiled from
+// content/articles/*.md by scripts/build-content.js (run automatically before
+// every dev/build) and fetched on open, plus the hand-written holdouts in
+// readerContent.js.
 
 // One brand accent per theme — replaces the old per-article-type color for
 // all reader chrome (progress bar, type dot, kicker). The type itself still
@@ -782,7 +780,7 @@ function References({ articleId, fonts, sizes, isDark, accent }) {
 
 // ─── Main Reader ──────────────────────────────────────────────────────────────
 export function Reader({ nodeId, onClose, backLabel = "Universe" }) {
-  const article = ACTIVE_ARTICLES[nodeId]
+  const { status, article } = useArticle(nodeId)
   const [settings, setSettings] = useState({ theme: "dark", font: "sans", size: "sm" })
   const [gearOpen, setGearOpen] = useState(false)
 
@@ -802,6 +800,23 @@ export function Reader({ nodeId, onClose, backLabel = "Universe" }) {
 
   const fonts = FONTS[settings.font]
   const sizes = SIZES[settings.size]
+
+  // Loading: just the reader's background and nav, no spinner — the JSON is
+  // small and usually arrives before anything would be worth showing.
+  if (status === "loading") {
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 100, background: p.bg }}>
+        <NavBar
+          backLabel={backLabel}
+          onClose={onClose}
+          isDark={isDark}
+          onToggleTheme={() => setSettings(s => ({ ...s, theme: isDark ? "light" : "dark" }))}
+          gearOpen={false}
+          onToggleGear={() => {}}
+        />
+      </div>
+    )
+  }
 
   if (!article) {
     return (
