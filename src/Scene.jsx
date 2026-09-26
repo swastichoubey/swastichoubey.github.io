@@ -62,9 +62,7 @@ function useAdaptiveQuality() {
 }
 
 export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, reducedMotion }) {
-  const groupRef    = useRef()
   const controlsRef = useRef()
-  const spinRef     = useRef(reducedMotion ? 0 : 0.022)   // eased auto-rotation speed
   const { camera }  = useThree()
   const layout      = useMemo(() => computeLayout(), [])
   const { bloom, dpr, onDecline } = useAdaptiveQuality()
@@ -157,21 +155,13 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
   const hasFilter = filteredIds !== null
 
   useFrame((state, dt) => {
-    // Auto-rotation eases to a stop during selection/fly/hover instead of snapping
-    const spinTarget = (!selected && !flyRef.current && !reducedMotion && !hoveredRef.current && !focusedId) ? 0.022 : 0
-    spinRef.current += (spinTarget - spinRef.current) * (1 - Math.exp(-dt * 3))
-    if (groupRef.current) groupRef.current.rotation.y += dt * spinRef.current
-
     // Fly-to — easeOutQuint: decelerates like falling into a gravity well.
-    // The destination is recomputed each frame from the body's live position
-    // rotated by the scene group's current spin, so it lands dead-center even
-    // if the universe was mid-rotation when clicked.
+    // The destination is recomputed each frame from the body's live position,
+    // so it lands dead-center even though the planet is drifting.
     // Reduced motion jumps straight to the destination.
     if (flyRef.current) {
       const pos = live.get(flyRef.current.nodeId)
-      const ry  = groupRef.current ? groupRef.current.rotation.y : 0
-      const cos = Math.cos(ry), sin = Math.sin(ry)
-      _flyTarget.set(pos.x * cos + pos.z * sin, pos.y, -pos.x * sin + pos.z * cos)
+      _flyTarget.copy(pos)
       _flyCamDest.set(_flyTarget.x, _flyTarget.y + 3, _flyTarget.z + 9)
 
       flyRef.current.t = reducedMotion ? 1 : Math.min(flyRef.current.t + dt * 0.8, 1)
@@ -218,7 +208,7 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
         target={DEFAULT_CAM_TARGET}
       />
 
-      <group ref={groupRef}>
+      <group>
         <Nebulae clusters={layout.clusters} filteredIds={filteredIds} reducedMotion={reducedMotion} />
 
         {/* Edges */}
