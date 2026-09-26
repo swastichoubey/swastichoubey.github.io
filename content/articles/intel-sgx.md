@@ -3,7 +3,7 @@ title: "Intel SGX: The CPU-Based Defense System"
 date: 2022-11
 readTime: 5
 type: exploratory
-cluster: Miscellaneous
+cluster: Security
 tags:
   - Security
   - HCI

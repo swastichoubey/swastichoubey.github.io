@@ -3,7 +3,7 @@ title: "Xenobots: The First Ever Living Robots"
 date: 2023-02
 readTime: 4
 type: exploratory
-cluster: Miscellaneous
+cluster: Curiosities
 tags:
   - Research
 excerpt: 'Living, programmable organisms designed on a supercomputer and assembled by biologists. Less than a millimeter wide, capable of movement, self-healing, and kinetic replication. Notes on something genuinely strange.'

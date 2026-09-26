@@ -9,13 +9,4 @@ tags:
   - Research
 excerpt: A reproducibility failure found in ChromaDB prompted this investigation into how evaluation frameworks silently diverge across environments.
 draft: true
-references:
-  - id: chromadb-issue
-    title: ChromaDB Reproducibility Failure
-    kind: Finding
-    note: 'Independently discovered: distance metric inconsistency across versions.'
-  - id: embedding-evals
-    title: Embedding Model Evaluation Study
-    kind: Research
-    note: Comparative evaluation of embedding models across semantic similarity benchmarks.
 ---

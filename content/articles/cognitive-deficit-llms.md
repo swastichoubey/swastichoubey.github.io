@@ -3,7 +3,7 @@ title: Cognitive Deficit Due to Over-Reliance on LLMs
 date: 2026-04
 readTime: 10
 type: exploratory
-cluster: Miscellaneous
+cluster: Alignment
 tags:
   - AI Safety
   - Cognitive Science
@@ -14,7 +14,7 @@ references:
     authors: Kosmyna et al.
     year: 2025
     url: 'https://arxiv.org/abs/2506.08872'
-    kind: Paper
+    kind: paper
     note: 'Study on cognitive skill atrophy from LLM offloading, with a focus on the impact of ChatGPT on writing and reasoning skills.'
 ---
 

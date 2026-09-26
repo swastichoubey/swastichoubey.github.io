@@ -3,7 +3,7 @@ title: Choosing an Embedding Model for Telephony Retrieval
 date: 2025-11
 readTime: 10
 type: experimental
-cluster: RAG
+cluster: Evals
 tags:
   - RAG
   - Evals
@@ -30,13 +30,13 @@ references:
     title: static-similarity-mrl-multilingual-v1
     authors: Sentence Transformers
     url: 'https://huggingface.co/sentence-transformers/static-similarity-mrl-multilingual-v1'
-    kind: Model
+    kind: web
     note: Model card for the MRL multilingual embedding model used in the evaluation.
   - id: st-all-mpnet-base-v2
     title: all-mpnet-base-v2
     authors: Sentence Transformers
     url: 'https://huggingface.co/sentence-transformers/all-mpnet-base-v2'
-    kind: Model
+    kind: web
     note: Sentence Transformers' highest-quality general-purpose embedding model.
 ---
 

@@ -156,12 +156,14 @@ function convertBlock(node) {
 //   related: [article-id]                           hand-declared link between articles
 //   references:                                     external sources cited by the article
 //     - id: author-year-keyword                     stable slug, shared across articles
-//       title, authors, year, url                   kind, note optional
+//       title, authors, url                         note optional
+//       kind: paper | web                           year required for papers
 // A file with frontmatter but no body is metadata-only (external or unwritten
 // articles) and gets no reader entry.
 
 const TYPES = ["exploratory", "experimental", "opinion", "project"]
-const CLUSTERS = ["Alignment", "Evals", "AI Control", "RAG", "Miscellaneous"]
+const CLUSTERS = ["Alignment", "Evals", "Control", "Security", "Curiosities"]
+const REFERENCE_KINDS = ["paper", "web"]
 
 const warnings = []
 const warn = (file, msg) => warnings.push(`${file}: ${msg}`)
@@ -230,7 +232,7 @@ for (const file of files) {
       // Same id cited again — the first declaration wins, later ones may only
       // fill in fields it left out. Disagreements are almost always a typo or
       // two different papers sharing a slug.
-      for (const key of ["title", "authors", "year", "url"]) {
+      for (const key of ["title", "authors", "year", "url", "kind"]) {
         if (ref[key] === undefined) continue
         if (existing[key] === undefined) existing[key] = ref[key]
         else if (String(existing[key]) !== String(ref[key])) {
@@ -280,7 +282,9 @@ for (const ref of references.values()) {
   // details in one of the articles citing it.
   const where = `${ref.citedBy[0]}.md`
   if (!ref.title) warn(where, `reference "${ref.id}" is missing \`title\``)
-  if (!ref.year) warn(where, `reference "${ref.id}" is missing \`year\``)
+  if (!REFERENCE_KINDS.includes(ref.kind)) warn(where, `reference "${ref.id}" has kind ${JSON.stringify(ref.kind)} (expected ${REFERENCE_KINDS.join(" or ")})`)
+  // Web pages are often undated or living documents; papers always have a year.
+  if (!ref.year && ref.kind !== "web") warn(where, `reference "${ref.id}" is missing \`year\``)
   if (!ref.url) warn(where, `reference "${ref.id}" has no \`url\``)
   if (articleIds.has(ref.id)) warn(where, `reference id "${ref.id}" collides with an article id`)
   if (!ref.url) continue

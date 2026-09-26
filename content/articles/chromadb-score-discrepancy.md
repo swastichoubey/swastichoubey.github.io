@@ -31,14 +31,14 @@ references:
     authors: Malkov & Yashunin
     year: 2018
     url: 'https://arxiv.org/abs/1603.09320'
-    kind: Paper
+    kind: paper
     note: 'Malkov & Yashunin, 2018 — the paper behind the approximate index at the root of the discrepancy.'
   - id: chroma-2025-v1-release
     title: ChromaDB v1.0 Release — Rust Rewrite Announcement
     authors: Chroma
     year: 2025
     url: 'https://trychroma.com/blog/2025-04-24-chroma-1.0'
-    kind: Docs
+    kind: web
     note: Official announcement of the Rust-core rewrite that changed the API path from SegmentAPI to RustBindingsAPI.
 ---
 

@@ -3,7 +3,7 @@ title: "CAPTCHA: What Is It and How Does It Work?"
 date: 2023-03
 readTime: 5
 type: exploratory
-cluster: Miscellaneous
+cluster: Security
 tags:
   - Security
   - Research

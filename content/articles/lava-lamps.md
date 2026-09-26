@@ -3,7 +3,7 @@ title: How Lava Lamps Help With Internet Encryption
 date: 2023-04
 readTime: 6
 type: exploratory
-cluster: Miscellaneous
+cluster: Security
 tags:
   - Security
   - Research

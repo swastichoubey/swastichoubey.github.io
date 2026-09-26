@@ -22,48 +22,48 @@ references:
     authors: Bondarenko et al.
     year: 2025
     url: 'https://arxiv.org/abs/2502.13295'
-    kind: Paper
+    kind: paper
     note: 'Palisade Research: reasoning models hacking the game environment to beat Stockfish.'
   - id: hubinger-2019-learned-optimization
     title: Risks from Learned Optimization in Advanced Machine Learning Systems
     authors: Hubinger et al.
     year: 2019
     url: 'https://arxiv.org/abs/1906.01820'
-    kind: Paper
+    kind: paper
   - id: langosco-2021-goal-misgeneralization
     title: Goal Misgeneralization in Deep Reinforcement Learning
     authors: Langosco et al.
     year: 2021
     url: 'https://arxiv.org/abs/2105.14111'
-    kind: Paper
+    kind: paper
   - id: metr-2026-hugging-face-incident
     title: 'Brief independent investigation of agents'' behavior, reasoning and collaboration in the OpenAI / Hugging Face hacking incident'
     authors: METR
     year: 2026
     url: 'https://metr.org/blog/2026-08-26-openai-hugging-face-incident-investigation/'
-    kind: Report
+    kind: web
   - id: mit-ai-risk-priorities
     title: Priority AI risks
     authors: MIT AI Risk Initiative
     url: 'https://airisk.mit.edu/priorities'
-    kind: Report
+    kind: web
   - id: openai-gpt-6-astra-system-card
     title: GPT-6 Astra System Card
     authors: OpenAI
     url: 'https://deploymentsafety.openai.com/gpt-6-astra/safety-overview-gpt-6-astra'
-    kind: Report
+    kind: web
   - id: lynch-2025-agentic-misalignment
     title: 'Agentic Misalignment: How LLMs Could Be Insider Threats'
     authors: Lynch et al.
     year: 2025
     url: 'https://arxiv.org/abs/2510.05179'
-    kind: Paper
+    kind: paper
   - id: anthropic-2026-cybersecurity-incidents
     title: An alignment assessment of recent cybersecurity incidents
     authors: Anthropic
     year: 2026
     url: 'https://www.anthropic.com/research/alignment-assessment-cybersecurity-incidents'
-    kind: Report
+    kind: web
 ---
 
 :::callout{label="A note on spelling"}
