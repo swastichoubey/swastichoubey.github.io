@@ -9,6 +9,8 @@ import { TOPBAR_TOP, TOPBAR_RIGHT, TOPBAR_SIZE } from "./chrome"
 // viewport — the gap is the panel's own padding value (18px) below, so the
 // spacing matches its internal rhythm instead of being an arbitrary number.
 const PANEL_PADDING = 18
+// Fully opaque fill: the scene (moons, stars) must not show through the panel
+const OPAQUE = "rgb(9, 11, 26)"
 const PANEL_TOP = TOPBAR_TOP + TOPBAR_SIZE + PANEL_PADDING
 
 function nodeColor(node) {
@@ -128,7 +130,7 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
         style={{
           position: "fixed", top: "50%", right: 0,
           translateY: "-50%",
-          ...withoutBlur(glassDock(true)),
+          ...withoutBlur(glassDock(true), OPAQUE),
           color: "#94a3b8", fontFamily: "'DM Mono', monospace",
           fontSize: "9px", letterSpacing: "0.1em",
           padding: "16px 6px", cursor: "pointer",
@@ -147,7 +149,7 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
       style={{
         position: "fixed", top: `${PANEL_TOP}px`, right: `${TOPBAR_RIGHT}px`,
         width: "272px", maxHeight: `calc(100vh - ${PANEL_TOP + TOPBAR_TOP}px)`, overflowY: "auto",
-        ...withoutBlur(glassPanel("#64748b")),
+        ...withoutBlur(glassPanel("#64748b"), OPAQUE),
         padding: `${PANEL_PADDING}px`, fontFamily: "'DM Mono', monospace",
         zIndex: 50, scrollbarWidth: "none",
       }}
