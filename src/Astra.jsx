@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import astraUrl from "./assets/astra.webp"
 
 const DIALOGUES = [
   "Currently working on the ARENA curriculum and applying to fellowships.",
@@ -75,7 +76,7 @@ export function Astra({ onClick }) {
 
       {/* Astra SVG — simplified version of the alien illustration */}
 <img
-  src="/src/assets/astra.png"
+  src={astraUrl}
   width="200"
   style={{
     transform: hovered ? "scale(1.08) translateY(-2px)" : "scale(1)",

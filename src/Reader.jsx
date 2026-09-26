@@ -5,6 +5,7 @@ import { useArticle } from "./articleStore"
 import { GRAPH } from "./graph.generated"
 import { glassPanel, glassPanelLight, SPRING, EASE_OUT } from "./glass"
 import emailjs from "@emailjs/browser"
+import astraReadingUrl from "./assets/astra_reading.webp"
 
 // Article content comes from articleStore.js: per-article JSON compiled from
 // content/articles/*.md by scripts/build-content.js (run automatically before
@@ -65,7 +66,7 @@ function ProgressBar({ accent }) {
 function ReaderMascot({ size = 26 }) {
   return (
     <img
-      src="/src/assets/astra_reading.png"
+      src={astraReadingUrl}
       width={size} height={size}
       style={{ display: "block", objectFit: "contain" }}
       alt="Hybridantic"
