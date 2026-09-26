@@ -40,12 +40,15 @@ function useAdaptiveQuality() {
   const { gl, setDpr } = useThree()
   const [bloom, setBloom] = useState(() => !isSoftwareRenderer(gl))
   const declines = useRef(0)
+  const dpr = useThree(s => s.viewport.dpr)
   const onDecline = () => {
     declines.current += 1
     if (declines.current === 1) setDpr(1)
     else setBloom(false)
   }
-  return { bloom, onDecline }
+  // Current quality level, readable from devtools or tests: data-quality on <canvas>
+  useEffect(() => { gl.domElement.dataset.quality = `dpr=${dpr} bloom=${bloom} declines=${declines.current}` }, [gl, dpr, bloom])
+  return { bloom, dpr, onDecline }
 }
 
 export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, reducedMotion }) {
@@ -54,7 +57,14 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
   const spinRef     = useRef(0.022)   // eased auto-rotation speed
   const { camera }  = useThree()
   const positions   = useMemo(() => computeLayout(), [])
-  const { bloom, onDecline } = useAdaptiveQuality()
+  const { bloom, dpr, onDecline } = useAdaptiveQuality()
+  const size = useThree(s => s.size)
+
+  // @react-three/postprocessing only resizes its buffers when the canvas's
+  // CSS size changes, not its pixel ratio — without this, dropping to 1x
+  // still renders bloom at the old resolution and saves nothing.
+  const composerRef = useRef()
+  useEffect(() => { composerRef.current?.setSize(size.width, size.height) }, [dpr, size])
 
   useEffect(() => {
     camera.position.copy(DEFAULT_CAM_POS)
@@ -180,7 +190,8 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
         })}
       </group>
 
-      <PerformanceMonitor onDecline={onDecline} />
+      {/* Declines when most samples over ~2.5s fall under 50fps (60Hz) */}
+      <PerformanceMonitor onDecline={onDecline} bounds={rate => rate > 100 ? [60, 100] : [50, 60]} />
 
       {/* Bloom only catches HDR values: star surfaces, coronas and the rims
           of recent planets. Lit surfaces stay below the threshold, so
@@ -188,7 +199,7 @@ export function Scene({ selected, onSelect, flyTarget, filteredIds, focusedId, r
           SMAA instead of MSAA: 4x multisampling on the half-float buffers
           cost ~12fps on an Intel UHD 620; SMAA costs ~0. */}
       {bloom && (
-        <EffectComposer multisampling={0}>
+        <EffectComposer ref={composerRef} multisampling={0}>
           <Bloom mipmapBlur luminanceThreshold={0.85} luminanceSmoothing={0.2} intensity={0.9} radius={0.6} />
           <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
           <SMAA />
