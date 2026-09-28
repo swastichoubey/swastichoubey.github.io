@@ -3,6 +3,10 @@ title: Automatic Synchronisation of Clocks and Devices
 date: 2023-04
 readTime: 6
 type: exploratory
+cluster: Curiosities
+tags:
+  - Research
+excerpt: 'Watching clocks flip at midnight during Daylight Savings Time led to a genuine question: how does every device just know? NTP, GPS atomic clocks, stratum hierarchies, and why this matters beyond phones.'
 ---
 
 During November 2021, my friends and I went out at midnight to watch Daylight Savings Time end in real time. Taking a walk was our best strategy for staying awake for it. At the time I was more focused on the celebration than on the fact that every device in everyone's pockets adjusted its time automatically, simultaneously, without any of us doing anything. It was only while travelling to London later that I actually wondered how that works.

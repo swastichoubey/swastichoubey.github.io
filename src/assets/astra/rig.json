@@ -1,0 +1,170 @@
+{
+ "size": [
+  500,
+  352
+ ],
+ "source_scale": 0.30488,
+ "layers": {
+  "base": {
+   "file": "base.webp",
+   "centre": [
+    301.37,
+    177.9
+   ],
+   "size": [
+    328.35,
+    299.7
+   ]
+  },
+  "wavy": {
+   "file": "wavy.webp",
+   "centre": [
+    246.65,
+    189.18
+   ],
+   "size": [
+    19.51,
+    5.18
+   ]
+  },
+  "surprise": {
+   "file": "surprise.webp",
+   "centre": [
+    246.8,
+    197.71
+   ],
+   "size": [
+    19.21,
+    22.26
+   ]
+  },
+  "smile": {
+   "file": "smile.webp",
+   "centre": [
+    246.65,
+    191.46
+   ],
+   "size": [
+    19.51,
+    9.76
+   ]
+  },
+  "sweat": {
+   "file": "sweat.webp",
+   "centre": [
+    341.16,
+    166.92
+   ],
+   "size": [
+    29.27,
+    53.35
+   ]
+  },
+  "zzz": {
+   "file": "zzz.webp",
+   "centre": [
+    303.35,
+    42.99
+   ],
+   "size": [
+    43.9,
+    36.59
+   ]
+  },
+  "cup": {
+   "file": "cup.webp",
+   "centre": [
+    84.91,
+    260.82
+   ],
+   "size": [
+    100.91,
+    125.3
+   ]
+  },
+  "star_left": {
+   "file": "star_left.webp",
+   "centre": [
+    222.41,
+    139.94
+   ],
+   "size": [
+    10.06,
+    10.37
+   ]
+  },
+  "star_right": {
+   "file": "star_right.webp",
+   "centre": [
+    286.28,
+    160.21
+   ],
+   "size": [
+    14.02,
+    12.5
+   ]
+  }
+ },
+ "eyes": [
+  {
+   "name": "left",
+   "box": [
+    204,
+    121,
+    49,
+    52
+   ],
+   "centre": [
+    228.78,
+    147.13
+   ],
+   "half": [
+    21.65,
+    23.02
+   ],
+   "star_rest": [
+    222.41,
+    139.94
+   ],
+   "star_size": [
+    10.06,
+    10.37
+   ]
+  },
+  {
+   "name": "right",
+   "box": [
+    262,
+    142,
+    67,
+    50
+   ],
+   "centre": [
+    295.46,
+    167.07
+   ],
+   "half": [
+    30.49,
+    21.65
+   ],
+   "star_rest": [
+    286.28,
+    160.21
+   ],
+   "star_size": [
+    14.02,
+    12.5
+   ]
+  }
+ ],
+ "lid": {
+  "rest_frac": 0.45,
+  "sag": 0.1,
+  "line_px": 3.96,
+  "line_rgb": [
+   1,
+   33,
+   40
+  ]
+ }
+}

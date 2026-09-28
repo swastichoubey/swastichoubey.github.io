@@ -3,6 +3,10 @@ title: "Xenobots: The First Ever Living Robots"
 date: 2023-02
 readTime: 4
 type: exploratory
+cluster: Curiosities
+tags:
+  - Research
+excerpt: 'Living, programmable organisms designed on a supercomputer and assembled by biologists. Less than a millimeter wide, capable of movement, self-healing, and kinetic replication. Notes on something genuinely strange.'
 ---
 
 Xenobots are living, programmable organisms. That is a wild statement but it is true. These new creatures were designed on a supercomputer at the University of Vermont and then assembled and tested by biologists at Tufts University — appropriate given that xenobots are neither completely robotic nor a known animal species.

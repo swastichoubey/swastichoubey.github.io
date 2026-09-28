@@ -3,6 +3,59 @@ title: Model Collapse Is A Misnomer
 date: 2026-08
 readTime: 8
 type: opinion
+cluster: Alignment
+tags:
+  - AI Safety
+  - Training
+  - Data Provenance
+excerpt: 'What happens when models train on their own outputs recursively: a deep dive into the collapse phenomenon and mitigation strategies.'
+featured: true
+references:
+  - id: shumailov-2023-curse-of-recursion
+    title: 'The Curse of Recursion: Training on Generated Data Makes Models Forget'
+    authors: Shumailov et al.
+    year: 2023
+    url: 'https://arxiv.org/abs/2305.17493'
+    kind: paper
+    note: Foundational paper on model collapse in self-consuming training loops.
+  - id: graphite-2026-ai-articles
+    title: AI Now Writes as Many Online Articles as Humans
+    authors: Graphite
+    year: 2026
+    url: 'https://graphite.io/five-percent/research/ai-now-writes-as-many-online-articles-as-humans-do'
+    kind: web
+    note: 'Using three AI detectors (Pangram, GPTZero, Copyleaks) on ~55k Common Crawl articles, this study finds AI-generated articles now make up ~50% of new online articles.'
+  - id: cacm-model-collapse
+    title: 'Model Collapse Is Already Happening, We Just Pretend It Isn''t'
+    url: 'https://cacm.acm.org/blogcacm/model-collapse-is-already-happening-we-just-pretend-it-isnt/'
+    kind: web
+    note: 'An opinion piece arguing that model collapse is unfolding gradually rather than catastrophically as models increasingly train on AI-generated web content, output variance quietly erodes toward homogenized, lower-information text (a photocopy of a photocopy effect), and the industry is largely ignoring it.'
+  - id: zhang-2023-human-favoritism
+    title: 'Human favoritism, not AI aversion: People''s perceptions (and bias) toward generative AI, human experts, and human–GAI collaboration in persuasive content generation'
+    authors: Zhang & Gosline
+    year: 2023
+    url: 'https://www.cambridge.org/core/journals/judgment-and-decision-making/article/human-favoritism-not-ai-aversion-peoples-perceptions-and-bias-toward-generative-ai-human-experts-and-humangai-collaboration-in-persuasive-content-generation/419C4BD9CE82673EAF1D8F6C350C4FA8'
+    kind: paper
+    note: 'Zhang & Gosline (2023, Judgment and Decision Making): In experiments with professional content creators and ChatGPT-4 producing persuasive/advertising content, AI-generated and AI-finalized content was rated higher quality than human experts'' work, and the evaluation bias observed was human favoritism (labeling content as human-made raised its perceived quality) rather than AI aversion (disclosing AI involvement didn''t lower ratings).'
+  - id: wikipedia-signs-of-ai-writing
+    title: 'Wikipedia:Signs of AI writing'
+    authors: Wikipedia contributors
+    url: 'https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing'
+    kind: web
+    note: 'A community-maintained field guide cataloguing writing and formatting patterns characteristic of LLM chatbot output (formulaic structure, puffery, negative parallelisms, em-dash overuse, unedited prompt artifacts, etc.), with real examples from Wikipedia drafts.'
+  - id: anthropic-2026-claude-watermarks
+    title: How Claude's Watermarks Work
+    authors: Anthropic
+    year: 2026
+    url: 'https://www.anthropic.com/news/claude-text-watermark'
+    kind: web
+    note: 'Anthropic announces statistical watermarking of Claude''s text outputs for EU AI Act compliance, using a SynthID-Text-based method that''s invisible to readers and probabilistic rather than definitive.'
+  - id: witnessai-model-collapse
+    title: 'AI Model Collapse: Understanding, Prevention, and the Future of Training Large Language Models'
+    authors: WitnessAI
+    url: 'https://witness.ai/blog/ai-model-collapse/'
+    kind: web
+    note: 'A vendor explainer blog defining model collapse as progressive LLM degradation from recursive training on AI-generated data, walking through its causes (data contamination, feedback loops, lack of provenance tracking), warning signs, and prevention strategies (human-data curation, provenance tracking, governance).'
 ---
 
 According to an article published by [Graphite Growth](https://graphite.io/) in May 2026, half of the new English-language articles on the internet are no longer written by people. They found that within a year of the launch of ChatGPT, primarily AI-generated articles accounted for 35.9% of articles published and by Q1 2026, this number had risen to 49.9%. I will not go into the details of the study but if you would like to see a breakdown of their methodology you can do so [here](https://graphite.io/five-percent/research/ai-now-writes-as-many-online-articles-as-humans-do).

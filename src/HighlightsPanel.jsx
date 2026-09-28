@@ -1,14 +1,16 @@
 import { useState, useEffect, useMemo } from "react"
 import { motion } from "motion/react"
-import { blogData } from "./data"
+import { blogData, visibleClusters } from "./data"
 import { THEME, TYPE_LABELS } from "./theme"
-import { glassPanel, glassCard, glassCardHover, glassDock, SPRING, EASE_OUT } from "./glass"
+import { glassPanel, glassCard, glassCardHover, glassDock, withoutBlur, SPRING, EASE_OUT } from "./glass"
 import { TOPBAR_TOP, TOPBAR_RIGHT, TOPBAR_SIZE } from "./chrome"
 
 // Anchored below the "?"/grid button row instead of centered on the
 // viewport — the gap is the panel's own padding value (18px) below, so the
 // spacing matches its internal rhythm instead of being an arbitrary number.
 const PANEL_PADDING = 18
+// Fully opaque fill: the scene (moons, stars) must not show through the panel
+const OPAQUE = "rgb(9, 11, 26)"
 const PANEL_TOP = TOPBAR_TOP + TOPBAR_SIZE + PANEL_PADDING
 
 function nodeColor(node) {
@@ -17,32 +19,29 @@ function nodeColor(node) {
   return THEME[node.type] || "#ffffff"
 }
 
-const ALL_TAGS = [...new Set(
-  blogData.nodes
-    .filter(n => n.type !== "ref" && n.type !== "about" && !n.draft)
-    .flatMap(n => n.tags || [])
-)].sort()
-
 const ALL_TYPES = ["exploratory", "experimental", "opinion", "project"]
 
-// Static highlights list (featured + most recent, no dupes)
-const recent = [...blogData.nodes]
+// Static highlights list (everything from the newest month + featured, no
+// dupes). Dates are month-precision, so "most recent" can be a tie — take the
+// whole month rather than letting file order pick a winner.
+const published = blogData.nodes
   .filter(n => n.date && !n.draft && n.type !== "ref" && n.type !== "about")
   .sort((a, b) => b.date.localeCompare(a.date))
-  .slice(0, 1)
+const recent = published.filter(n => n.date === published[0]?.date)
 
-const featured  = blogData.nodes.filter(n => n.featured && !n.draft)
+const featured  = published.filter(n => n.featured)
 const highlights = [
   ...recent,
   ...featured.filter(n => !recent.find(r => r.id === n.id)),
 ].slice(0, 4)
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-function articlePassesFilter(node, activeTags, activeTypes) {
+// Types and clusters each match any selected value; the two combine with AND.
+function articlePassesFilter(node, activeClusters, activeTypes) {
   if (node.type === "ref" || node.type === "about" || node.draft) return false
-  const typeOk = activeTypes.size === 0 || activeTypes.has(node.type)
-  const tagOk  = activeTags.size  === 0 || [...activeTags].every(t => node.tags?.includes(t))
-  return typeOk && tagOk
+  const typeOk    = activeTypes.size    === 0 || activeTypes.has(node.type)
+  const clusterOk = activeClusters.size === 0 || activeClusters.has(node.cluster)
+  return typeOk && clusterOk
 }
 
 function FilterPill({ label, color, active, onClick }) {
@@ -72,13 +71,13 @@ function HighlightCard({ node, onSelect, onFlyTo }) {
       transition={SPRING.snappy}
       style={{
         padding: "10px 12px",
-        ...glassCard(color),
+        ...withoutBlur(glassCard(color)),
         cursor: "pointer",
         transition: `border-color 0.3s ${EASE_OUT}, background 0.3s ${EASE_OUT}, box-shadow 0.3s ${EASE_OUT}`,
         marginBottom: "6px",
       }}
       onMouseEnter={e => Object.assign(e.currentTarget.style, glassCardHover(color))}
-      onMouseLeave={e => Object.assign(e.currentTarget.style, glassCard(color))}
+      onMouseLeave={e => Object.assign(e.currentTarget.style, withoutBlur(glassCard(color)))}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "5px" }}>
         <span style={{ width: "5px", height: "5px", borderRadius: "50%", background: color, boxShadow: `0 0 5px ${color}`, flexShrink: 0 }} />
@@ -94,8 +93,8 @@ function HighlightCard({ node, onSelect, onFlyTo }) {
 }
 
 export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onHide }) {
-  const [activeTags,  setActiveTags]  = useState(new Set())
-  const [activeTypes, setActiveTypes] = useState(new Set())
+  const [activeClusters, setActiveClusters] = useState(new Set())
+  const [activeTypes,    setActiveTypes]    = useState(new Set())
   const [showTooltip, setShowTooltip] = useState(true)
 
   useEffect(() => {
@@ -105,20 +104,20 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
 
   // Notify parent whenever filters change
   useEffect(() => {
-    onFilterChange({ tags: activeTags, types: activeTypes })
-  }, [activeTags, activeTypes])
+    onFilterChange({ clusters: activeClusters, types: activeTypes })
+  }, [activeClusters, activeTypes])
 
-  const toggleTag  = tag  => setActiveTags(p  => { const n = new Set(p); n.has(tag)  ? n.delete(tag)  : n.add(tag);  return n })
-  const toggleType = type => setActiveTypes(p => { const n = new Set(p); n.has(type) ? n.delete(type) : n.add(type); return n })
-  const clearFilters = () => { setActiveTags(new Set()); setActiveTypes(new Set()) }
+  const toggleCluster = c    => setActiveClusters(p => { const n = new Set(p); n.has(c)    ? n.delete(c)    : n.add(c);    return n })
+  const toggleType    = type => setActiveTypes(p    => { const n = new Set(p); n.has(type) ? n.delete(type) : n.add(type); return n })
+  const clearFilters = () => { setActiveClusters(new Set()); setActiveTypes(new Set()) }
 
-  const hasFilters = activeTags.size > 0 || activeTypes.size > 0
+  const hasFilters = activeClusters.size > 0 || activeTypes.size > 0
 
   // Count matching articles so we can show empty state
   const matchCount = useMemo(() => {
     if (!hasFilters) return null
-    return blogData.nodes.filter(n => articlePassesFilter(n, activeTags, activeTypes)).length
-  }, [activeTags, activeTypes, hasFilters])
+    return blogData.nodes.filter(n => articlePassesFilter(n, activeClusters, activeTypes)).length
+  }, [activeClusters, activeTypes, hasFilters])
 
   if (hidden) {
     return (
@@ -131,7 +130,7 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
         style={{
           position: "fixed", top: "50%", right: 0,
           translateY: "-50%",
-          ...glassDock(true),
+          ...withoutBlur(glassDock(true), OPAQUE),
           color: "#94a3b8", fontFamily: "'DM Mono', monospace",
           fontSize: "9px", letterSpacing: "0.1em",
           padding: "16px 6px", cursor: "pointer",
@@ -150,7 +149,7 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
       style={{
         position: "fixed", top: `${PANEL_TOP}px`, right: `${TOPBAR_RIGHT}px`,
         width: "272px", maxHeight: `calc(100vh - ${PANEL_TOP + TOPBAR_TOP}px)`, overflowY: "auto",
-        ...glassPanel("#64748b"),
+        ...withoutBlur(glassPanel("#64748b"), OPAQUE),
         padding: `${PANEL_PADDING}px`, fontFamily: "'DM Mono', monospace",
         zIndex: 50, scrollbarWidth: "none",
       }}
@@ -188,7 +187,7 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
       {hasFilters && matchCount !== null && (
         <div style={{
           padding: "8px 12px",
-          ...glassCard("#475569"),
+          ...withoutBlur(glassCard("#475569")),
           marginBottom: "10px",
           fontSize: "10px", color: "#94a3b8", lineHeight: 1.6,
         }}>
@@ -216,12 +215,12 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
         ))}
       </div>
 
-      {/* Tag pills */}
+      {/* Cluster pills — only clusters with a published article */}
       <div style={{ fontSize: "9px", color: "#475569", marginBottom: "6px" }}>Category:</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "5px" }}>
-        {ALL_TAGS.map(tag => (
-          <FilterPill key={tag} label={tag} color="#94a3b8"
-            active={activeTags.has(tag)} onClick={() => toggleTag(tag)} />
+        {visibleClusters.map(cluster => (
+          <FilterPill key={cluster} label={cluster} color="#94a3b8"
+            active={activeClusters.has(cluster)} onClick={() => toggleCluster(cluster)} />
         ))}
       </div>
 

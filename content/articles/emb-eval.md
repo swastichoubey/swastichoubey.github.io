@@ -3,6 +3,15 @@ title: Choosing an Embedding Model for Telephony Retrieval
 date: 2025-11
 readTime: 10
 type: experimental
+cluster: Evals
+tags:
+  - RAG
+  - Evals
+  - Research
+excerpt: 'Findings from a comparative evaluation of three models on a multilingual, latency-sensitive production system — and what MRL actually means in practice.'
+featured: true
+related:
+  - chromadb-score-discrepancy
 kicker: [Retrieval, Embeddings, RAG]
 dek: Findings from a comparative evaluation of three models on a multilingual, latency-sensitive production system.
 heroImage:
@@ -16,6 +25,19 @@ meta:
   - label: Languages
     value: EN · HI · Hinglish
 colophon: Originally published as a Confluence Document
+references:
+  - id: st-static-similarity-mrl-multilingual-v1
+    title: static-similarity-mrl-multilingual-v1
+    authors: Sentence Transformers
+    url: 'https://huggingface.co/sentence-transformers/static-similarity-mrl-multilingual-v1'
+    kind: web
+    note: Model card for the MRL multilingual embedding model used in the evaluation.
+  - id: st-all-mpnet-base-v2
+    title: all-mpnet-base-v2
+    authors: Sentence Transformers
+    url: 'https://huggingface.co/sentence-transformers/all-mpnet-base-v2'
+    kind: web
+    note: Sentence Transformers' highest-quality general-purpose embedding model.
 ---
 
 I was working on an adaptive learning algorithm for my edtech platform when I was flagged by another team struggling with a retrieval system for structured Q&A content in a multilingual, latency-sensitive environment. The two biggest issues were inaccurate responses and high latency.

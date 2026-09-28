@@ -1,7 +1,5 @@
-import { useState, Suspense, useMemo, useEffect } from "react"
-import { Canvas } from "@react-three/fiber"
-import { AnimatePresence } from "motion/react"
-import { Scene } from "./Scene"
+import { useState, Suspense, useMemo, useEffect, useRef, lazy } from "react"
+import { AnimatePresence, motion } from "motion/react"
 import { InfoPanel } from "./InfoPanel"
 import { AboutPanel } from "./AboutPanel"
 import { HighlightsPanel } from "./HighlightsPanel"
@@ -12,21 +10,42 @@ import { GridView } from "./GridView"
 import { Reader } from "./Reader"
 import { MobileView } from "./MobileView"
 import { blogData } from "./data"
-import { Astra } from "./Astra"
+import { AboutButton } from "./AboutButton"
+import { PlanetNav } from "./PlanetNav"
+import { useReducedMotion } from "./useReducedMotion"
+import { preloadArticle } from "./articleStore"
 
 const MOBILE_BREAKPOINT = 768
 
+// Space each right-hand panel takes from the viewport (width + its 24px
+// margin); the scene frames itself in what's left.
+const PANEL_INSET = { highlights: 296, info: 324, about: 344 }
+
+// Opening an article from the universe: the camera flies into the planet
+// (ENTER_MS), and over its last stretch the page fades to the reader's
+// background, which the reader then fades in over. Closing reverses it.
+// Reduced motion skips the flight and just cross-fades.
+const ENTER_MS = 1100
+const FADE_IN  = { delay: 0.65, duration: 0.45 }
+const FADE_OUT = { duration: 0.45 }
+const REDUCED_FADE_MS = 250
+const READER_BG = "#05050f"
+
+// The 3D scene (three, R3F, drei, postprocessing) is a separate chunk,
+// fetched only when the desktop universe actually renders.
+const Universe = lazy(() => import("./Universe"))
+// Astra's layered rig (images + rig data) is only needed on desktop too
+const Astra = lazy(() => import("./Astra"))
+
 function nodePassesFilter(node, filters) {
-  const { tags, types } = filters
-  // Refs always pass — they are moons, not articles, not subject to type/tag filters
+  const { clusters, types } = filters
+  // Refs always pass — they are moons, not articles, not subject to type/cluster filters
   if (node.type === "ref") return true
   // Drafts always pass visually (they show dimmed regardless)
   if (node.draft) return true
-  // About node: never matches type/tag filters — will be faded
-  if (node.type === "about") return false
   const typeMatch = types.size === 0 || types.has(node.type)
-  const tagMatch  = tags.size  === 0 || [...tags].every(t => node.tags?.includes(t))
-  return typeMatch && tagMatch
+  const clusterMatch = clusters.size === 0 || clusters.has(node.cluster)
+  return typeMatch && clusterMatch
 }
 
 function handleReadExternal(node) {
@@ -46,9 +65,13 @@ export default function App() {
   const [selected,      setSelected]      = useState(null)
   const [flyTarget,     setFlyTarget]     = useState(null)
   const [panelHidden,   setPanelHidden]   = useState(false)
-  const [filters,       setFilters]       = useState({ tags: new Set(), types: new Set() })
-  const [aboutExpanded, setAboutExpanded] = useState(false)
+  const [filters,       setFilters]       = useState({ clusters: new Set(), types: new Set() })
   const [aboutView,     setAboutView]     = useState(null)
+  const [focusedId,     setFocusedId]     = useState(null)
+  const [focusedRef,    setFocusedRef]    = useState(null)   // "articleId:refId" from keyboard nav
+  // Stop rendering the scene entirely while the tab is hidden.
+  const [frameloop,     setFrameloop]     = useState(document.hidden ? "never" : "always")
+  const reducedMotion = useReducedMotion()
   const [gridView,      setGridView]      = useState(false)
   // Where the reader was opened from, so its back button can both label
   // itself correctly and land somewhere real — "grid" or null (universe /
@@ -58,6 +81,18 @@ export default function App() {
     const id = decodeURIComponent(window.location.pathname.replace(/^\//, ""))
     return readableNode(id)?.id ?? null
   })
+  // Fly-in / fly-out between the universe and the reader
+  const [enterTarget,   setEnterTarget]   = useState(null)   // { id, nonce }
+  const [returnNonce,   setReturnNonce]   = useState(0)
+  const [veil,          setVeil]          = useState(null)   // "in" | "out" | null
+  const flewIn     = useRef(false)   // reader was opened by flying into a planet
+  const entering   = useRef(false)   // a fly-in is in progress
+
+  useEffect(() => {
+    const onVisibility = () => setFrameloop(document.hidden ? "never" : "always")
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => document.removeEventListener("visibilitychange", onVisibility)
+  }, [])
 
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
@@ -69,22 +104,23 @@ export default function App() {
   useEffect(() => {
     const onPopState = () => {
       const id = decodeURIComponent(window.location.pathname.replace(/^\//, ""))
-      setReaderNodeId(readableNode(id)?.id ?? null)
+      const next = readableNode(id)?.id ?? null
+      setReaderNodeId(next)
+      if (!next) flyBackOut()
     }
     window.addEventListener("popstate", onPopState)
     return () => window.removeEventListener("popstate", onPopState)
   }, [])
 
-  const hasActiveFilter = filters.tags.size > 0 || filters.types.size > 0
+  const hasActiveFilter = filters.clusters.size > 0 || filters.types.size > 0
 
-  // filteredIds — null means no filter. About node included in fade when filter active.
+  // filteredIds — null means no filter.
   const filteredIds = useMemo(() => {
     if (!hasActiveFilter) return null
     return new Set(
       blogData.nodes
         .filter(n => nodePassesFilter(n, filters))
         .map(n => n.id)
-      // Note: about node NOT included → it will fade with filters
     )
   }, [filters, hasActiveFilter])
 
@@ -98,27 +134,44 @@ export default function App() {
     }
   }
 
-  const handleSelect = node => {
-    if (node.draft) return
-    if (node.type === "about") {
-      const next = !aboutExpanded
-      setAboutExpanded(next)
-      setSelected(null)
-      setAboutView(next ? "about" : null)
-      if (!next) setPanelHidden(false)
-      if (next) handleFlyTo(node.id)
-      return
-    }
-    setAboutExpanded(false)
-    setAboutView(null)
-    const deselecting = selected?.id === node.id
-    setSelected(deselecting ? null : node)
-    if (!deselecting) handleFlyTo(node.id)
+  // Clicking a planet (or Enter on it, or Read in its info panel): fly in,
+  // then open the reader. External articles open in a new tab straight away,
+  // since a delayed window.open would be blocked as a popup.
+  const enterArticle = node => {
+    if (!node || node.draft || entering.current) return
+    if (handleReadExternal(node)) return
+    preloadArticle(node.id)
+    entering.current = true
+    flewIn.current = true
+    setVeil("in")
+    if (!reducedMotion) setEnterTarget({ id: node.id, nonce: Date.now() })
+    setTimeout(() => {
+      entering.current = false
+      openReader(node)
+      setVeil(null)
+    }, reducedMotion ? REDUCED_FADE_MS : ENTER_MS)
   }
 
-  // Clicking a moon (or a tab) loads that section into the panel
-  const handleSpokeClick = view => {
-    setAboutView(view)
+  // Leaving a reader we flew into: reverse the flight (the scene tweens back
+  // to the saved view) while the veil fades away.
+  function flyBackOut() {
+    if (!flewIn.current) return
+    flewIn.current = false
+    setVeil("out")
+    setReturnNonce(n => n + 1)
+    setTimeout(() => setVeil(null), reducedMotion ? REDUCED_FADE_MS : FADE_OUT.duration * 1000)
+  }
+
+  const openAbout = () => {
+    setSelected(null)
+    setAboutView("about")
+    setPanelHidden(false)
+  }
+
+  const toggleAbout = () => {
+    setSelected(null)
+    setAboutView(v => v ? null : "about")
+    setPanelHidden(false)
   }
 
   const handleFlyTo = nodeId => {
@@ -135,7 +188,6 @@ export default function App() {
   const handleCloseInfo  = () => { setSelected(null); setPanelHidden(false) }
   const handleCloseAbout = () => {
     setAboutView(null)
-    setAboutExpanded(false)
     setPanelHidden(false)
   }
   const handleCloseReader = () => {
@@ -144,16 +196,20 @@ export default function App() {
     if (window.location.pathname !== "/") {
       window.history.pushState({}, "", "/")
     }
+    flyBackOut()
   }
 
   const handlePointerMissed = () => {
     if (selected) { setSelected(null); setPanelHidden(false) }
-    if (aboutView && !aboutExpanded) setAboutView(null)
   }
 
   const showAboutPanel = !!aboutView
   const showInfoPanel  = !!selected && !showAboutPanel
   const showHighlights = !showAboutPanel && !showInfoPanel
+  const rightInset = showAboutPanel ? PANEL_INSET.about
+    : showInfoPanel ? PANEL_INSET.info
+    : !panelHidden ? PANEL_INSET.highlights
+    : 0
 
   if (isMobile) {
     return (
@@ -179,23 +235,23 @@ export default function App() {
         <GridView onRead={openReader} onClose={() => setGridView(false)} />
       ) : (
         <>
-          <Canvas
-            camera={{ position: [4, 14, 28], fov: 52 }}
-            gl={{ antialias: true, alpha: false }}
-            onPointerMissed={handlePointerMissed}
-          >
-            <Suspense fallback={null}>
-              <Scene
-                selected={selected}
-                onSelect={handleSelect}
-                flyTarget={flyTarget}
-                filteredIds={filteredIds}
-                aboutExpanded={aboutExpanded}
-                aboutView={aboutView}
-                onSpokeClick={handleSpokeClick}
-              />
-            </Suspense>
-          </Canvas>
+          <Suspense fallback={null}>
+            <Universe
+              frameloop={readerNodeId ? "never" : frameloop}
+              onPointerMissed={handlePointerMissed}
+              selected={selected}
+              onEnter={enterArticle}
+              flyTarget={flyTarget}
+              enterTarget={enterTarget}
+              returnNonce={returnNonce}
+              rightInset={rightInset}
+              filteredIds={filteredIds}
+              clusterFilter={filters.clusters}
+              focusedId={focusedId}
+              focusedRef={focusedRef}
+              reducedMotion={reducedMotion}
+            />
+          </Suspense>
 
           <AnimatePresence>
             {showAboutPanel && (
@@ -207,7 +263,7 @@ export default function App() {
               />
             )}
             {showInfoPanel && (
-              <InfoPanel key="info-panel" node={selected} onClose={handleCloseInfo} onRead={openReader} />
+              <InfoPanel key="info-panel" node={selected} onClose={handleCloseInfo} onRead={enterArticle} />
             )}
             {showHighlights && (
               <HighlightsPanel
@@ -222,19 +278,39 @@ export default function App() {
           </AnimatePresence>
 
           <Legend />
-          <Astra />
+          <Suspense fallback={null}>
+            <Astra onOpen={openAbout} />
+          </Suspense>
+          <AboutButton active={showAboutPanel} onClick={toggleAbout} />
+          {!readerNodeId && <PlanetNav onFocusChange={setFocusedId} onRefFocusChange={setFocusedRef} onOpen={enterArticle} />}
         </>
       )}
 
       <HowToPanel />
       <GridToggle active={gridView} onClick={() => setGridView(p => !p)} />
 
+      {/* Veil: the reader's background colour fading over the scene as the
+          camera reaches the planet, and away again on the way back out. */}
+      <AnimatePresence>
+        {veil && (
+          <motion.div
+            key="veil"
+            initial={{ opacity: veil === "in" ? 0 : 1 }}
+            animate={{ opacity: veil === "in" ? 1 : 0 }}
+            transition={reducedMotion ? { duration: REDUCED_FADE_MS / 1000 } : veil === "in" ? FADE_IN : FADE_OUT}
+            style={{ position: "fixed", inset: 0, zIndex: 90, background: READER_BG, pointerEvents: "none" }}
+          />
+        )}
+      </AnimatePresence>
+
       {readerNodeId && (
-        <Reader
-          nodeId={readerNodeId}
-          onClose={handleCloseReader}
-          backLabel={readerOrigin === "grid" ? "Grid" : "Universe"}
-        />
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }}>
+          <Reader
+            nodeId={readerNodeId}
+            onClose={handleCloseReader}
+            backLabel={readerOrigin === "grid" ? "Grid" : "Universe"}
+          />
+        </motion.div>
       )}
 
       <style>{`

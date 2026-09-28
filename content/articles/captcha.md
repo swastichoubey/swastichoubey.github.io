@@ -3,6 +3,11 @@ title: "CAPTCHA: What Is It and How Does It Work?"
 date: 2023-03
 readTime: 5
 type: exploratory
+cluster: Security
+tags:
+  - Security
+  - Research
+excerpt: 'From distorted text that bots could eventually read, to cursor path analysis and full browsing history assessment. How the arms race between CAPTCHAs and ML evolved — and where it stands now.'
 ---
 
 CAPTCHA stands for Completely Automated Public Turing test to tell Computers and Humans Apart. The test is designed to determine whether a user is human or a bot. The original version required users to identify the correct sequence of distorted characters — the assumption being that bots couldn't reliably parse them and would, at best, input a random string, making it statistically unlikely they'd pass. Then ML got better at reading distorted text, and the arms race began.

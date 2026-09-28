@@ -3,6 +3,11 @@ title: "Intel SGX: The CPU-Based Defense System"
 date: 2022-11
 readTime: 5
 type: exploratory
+cluster: Security
+tags:
+  - Security
+  - HCI
+excerpt: 'SGX seemed impenetrable — private enclaves, CPU-level encryption, even Spectre-resistant. Then came SGXPECTRE and ÆPIC Leak. A look at how the attack surface evolved and what remained useful.'
 ---
 
 According to Intel, its Software Guard Extensions (SGX) allows user-level code to allocate private regions of memory called enclaves, which are designed to be protected from processes running at higher privilege levels. What stands out is that SGX is a CPU-based defense system — because it allows applications to run in private memory space, overall system vulnerability is reduced. When an application runs inside an enclave, the CPU instantly encrypts it and stores the key inside itself, where it cannot be obtained by inspecting system memory. Spectre is an Intel processor vulnerability, but even that didn't seem to affect SGX enclaves — the enclave security was designed to prevent even operating systems from accessing the data inside.

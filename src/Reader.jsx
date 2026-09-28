@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef, Fragment } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { THEME, TYPE_LABELS } from "./theme"
-import { ARTICLES } from "./readerContent"
-import { ARTICLES as GENERATED_ARTICLES } from "./readerContent.generated"
+import { useArticle } from "./articleStore"
+import { GRAPH } from "./graph.generated"
 import { glassPanel, glassPanelLight, SPRING, EASE_OUT } from "./glass"
 import emailjs from "@emailjs/browser"
+import astraReaderUrl from "./assets/astra_reader.webp"
 
-// readerContent.js holds whatever hasn't been converted to Markdown yet;
-// readerContent.generated.js is compiled from content/articles/*.md by
-// scripts/build-content.js (run automatically before every dev/build).
-// Generated entries win on id collisions.
-const ACTIVE_ARTICLES = { ...ARTICLES, ...GENERATED_ARTICLES }
+// Article content comes from articleStore.js: per-article JSON compiled from
+// content/articles/*.md by scripts/build-content.js (run automatically before
+// every dev/build) and fetched on open, plus the hand-written holdouts in
+// readerContent.js.
 
 // One brand accent per theme — replaces the old per-article-type color for
 // all reader chrome (progress bar, type dot, kicker). The type itself still
@@ -66,10 +66,10 @@ function ProgressBar({ accent }) {
 function ReaderMascot({ size = 26 }) {
   return (
     <img
-      src="/src/assets/astra_reading.png"
+      src={astraReaderUrl}
       width={size} height={size}
       style={{ display: "block", objectFit: "contain" }}
-      alt="Hybridantic"
+      alt="Hybridlogs"
     />
   )
 }
@@ -138,7 +138,7 @@ function NavBar({ backLabel, onClose, isDark, onToggleTheme, gearOpen, onToggleG
         <span style={{
           fontFamily: "'DM Mono', monospace", fontSize: "17px", fontWeight: 600,
           letterSpacing: "0.02em", color: p.text,
-        }}>Hybridantic</span>
+        }}>Hybridlogs</span>
       </div>
 
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
@@ -738,9 +738,50 @@ function NightSky() {
   )
 }
 
+// ─── References ───────────────────────────────────────────────────────────────
+// Same data that feeds the universe's reference moons (graph.generated.js).
+// Deliberately plain — the reader redesign will restyle it.
+const REFERENCES_BY_ID = new Map(GRAPH.references.map(r => [r.id, r]))
+
+function referencesFor(articleId) {
+  return GRAPH.citations
+    .filter(c => c.article === articleId)
+    .map(c => REFERENCES_BY_ID.get(c.reference))
+}
+
+function References({ articleId, fonts, sizes, isDark, accent }) {
+  const refs = referencesFor(articleId)
+  if (refs.length === 0) return null
+  const p = isDark ? PALETTE.dark : PALETTE.light
+
+  return (
+    <section aria-labelledby="reader-references" style={{
+      marginTop: "2.4em", paddingTop: "1.2em", borderTop: `1px solid ${p.border}`,
+    }}>
+      <h2 id="reader-references" style={{ fontFamily: fonts.heading, fontSize: sizes.h3,
+        color: p.text, fontWeight: 600, margin: "0 0 0.8em" }}>References</h2>
+      <ol style={{ fontFamily: fonts.body, fontSize: sizes.body, color: p.text,
+        lineHeight: 1.6, paddingLeft: "1.4em", margin: 0 }}>
+        {refs.map(ref => {
+          const byline = [ref.authors, ref.year && `(${ref.year})`].filter(Boolean).join(" ")
+          return (
+            <li key={ref.id} style={{ marginBottom: "0.6em", overflowWrap: "anywhere" }}>
+              {byline && <>{byline}. </>}
+              {ref.url
+                ? <a href={ref.url} target="_blank" rel="noopener noreferrer"
+                    style={{ color: accent }}>{ref.title}</a>
+                : ref.title}
+            </li>
+          )
+        })}
+      </ol>
+    </section>
+  )
+}
+
 // ─── Main Reader ──────────────────────────────────────────────────────────────
 export function Reader({ nodeId, onClose, backLabel = "Universe" }) {
-  const article = ACTIVE_ARTICLES[nodeId]
+  const { status, article } = useArticle(nodeId)
   const [settings, setSettings] = useState({ theme: "dark", font: "sans", size: "sm" })
   const [gearOpen, setGearOpen] = useState(false)
 
@@ -760,6 +801,23 @@ export function Reader({ nodeId, onClose, backLabel = "Universe" }) {
 
   const fonts = FONTS[settings.font]
   const sizes = SIZES[settings.size]
+
+  // Loading: just the reader's background and nav, no spinner — the JSON is
+  // small and usually arrives before anything would be worth showing.
+  if (status === "loading") {
+    return (
+      <div style={{ position: "fixed", inset: 0, zIndex: 100, background: p.bg }}>
+        <NavBar
+          backLabel={backLabel}
+          onClose={onClose}
+          isDark={isDark}
+          onToggleTheme={() => setSettings(s => ({ ...s, theme: isDark ? "light" : "dark" }))}
+          gearOpen={false}
+          onToggleGear={() => {}}
+        />
+      </div>
+    )
+  }
 
   if (!article) {
     return (
@@ -890,6 +948,8 @@ export function Reader({ nodeId, onClose, backLabel = "Universe" }) {
           {article.blocks.map((block, i) => (
             <Block key={i} block={block} fonts={fonts} sizes={sizes} isDark={isDark} accent={p.accent} />
           ))}
+
+          <References articleId={nodeId} fonts={fonts} sizes={sizes} isDark={isDark} accent={p.accent} />
 
           <ActionRow isDark={isDark} articleTitle={article.title} />
 
