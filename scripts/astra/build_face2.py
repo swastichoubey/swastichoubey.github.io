@@ -1,4 +1,7 @@
-"""Round 2: seamless lids with round-capped lid line, oriented cup, previews.
+"""Inputs and outputs live in the artwork folder passed as the first argument
+(art-source/ at the repo root, gitignored).
+
+Round 2: seamless lids with round-capped lid line, oriented cup, previews.
 
 Writes (next to the originals, which stay untouched):
   04_eyelids_generated.png  lids at rest height (45%)

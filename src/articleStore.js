@@ -10,7 +10,7 @@ import { ARTICLES as HOLDOUTS } from "./readerContent"
 const pending  = new Map()   // id → Promise<article | null>
 const resolved = new Map()   // id → article, once loaded
 
-export function loadArticle(id) {
+function loadArticle(id) {
   if (HOLDOUTS[id]) return Promise.resolve(HOLDOUTS[id])
   if (resolved.has(id)) return Promise.resolve(resolved.get(id))
   if (!pending.has(id)) {

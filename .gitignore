@@ -2,3 +2,4 @@ node_modules
 dist
 public/reader/
 src/graph.generated.js
+art-source/

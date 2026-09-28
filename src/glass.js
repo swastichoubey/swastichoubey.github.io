@@ -127,4 +127,3 @@ export const SPRING = {
 }
 
 export const EASE_OUT = "cubic-bezier(0.22, 1, 0.36, 1)"      // easeOutQuint-ish
-export const EASE_OUT_SOFT = "cubic-bezier(0.33, 1, 0.68, 1)" // easeOutCubic

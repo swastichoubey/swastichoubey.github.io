@@ -8,7 +8,7 @@ import os
 import numpy as np
 from PIL import Image
 
-SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "src", "assets")
+SRC = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "art-source")
 NOSE_CX, MOUTH_TOP, MOUTH_W = 704, 533, 64          # same anchor as build_face.py; width of the other mouths
 
 im = Image.open(os.path.join(SRC, "10_smile.png")).convert("RGBA")

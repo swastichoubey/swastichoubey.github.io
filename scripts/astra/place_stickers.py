@@ -1,4 +1,7 @@
-"""Place stickers 06-09 relative to 01_base on the shared 1536x1024 canvas.
+"""Inputs and outputs live in the artwork folder passed as the first argument
+(art-source/ at the repo root, gitignored).
+
+Place stickers 06-09 relative to 01_base on the shared 1536x1024 canvas.
 
 Every placement is a search: the sticker is scaled, then positioned where
 none of its pixels come within a margin of Astra (01_base) or of stickers

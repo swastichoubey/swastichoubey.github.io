@@ -1,4 +1,7 @@
-"""Astra layer fixes against 01_base (all on the shared 1536x1024 canvas).
+"""Inputs and outputs live in the artwork folder passed as the first argument
+(art-source/ at the repo root, gitignored).
+
+Astra layer fixes against 01_base (all on the shared 1536x1024 canvas).
 
 Writes new files next to the originals (originals untouched):
   03_eye_stars_placed.png   stars inside the detected eye ovals

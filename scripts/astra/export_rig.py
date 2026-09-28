@@ -1,6 +1,6 @@
 """Export Astra's layers for the in-page rig (src/Astra.jsx).
 
-Reads the placed / generated source layers in src/assets/ (1536x1024, all in
+Reads the placed / generated source layers in art-source/ (1536x1024, all in
 01_base's coordinate frame), trims them to their shared bounding box plus an
 8% transparent margin on every side (so bob / tilt never clips), scales to
 EXPORT_W wide and writes WebP layers to src/assets/astra/ plus rig.json with
@@ -13,10 +13,11 @@ eyemask_{left,right} (grown oval, used as a CSS mask) and lidskin_{left,right}
 
 Usage: python scripts/astra/export_rig.py
 
-Pipeline (Python 3 + numpy, scipy, Pillow; dev-only, not an npm dependency):
-  place_stickers.py <assets> <preview-dir>   07 sweat / 08 zzz relative to 01_base
-  build_face.py     <assets> <preview-dir>   eye ovals -> astra_eyes.json, stars, mouths, sweat on the temple
-  build_face2.py    <assets> <preview-dir>   inpainted lid skin, lids, 09_cup_oriented placement
+Pipeline (Python 3 + numpy, scipy, Pillow; dev-only, not an npm dependency).
+The artwork lives in art-source/ at the repo root, which is gitignored:
+  place_stickers.py art-source <preview-dir>   07 sweat / 08 zzz relative to 01_base
+  build_face.py     art-source <preview-dir>   eye ovals -> astra_eyes.json, stars, mouths, sweat on the temple
+  build_face2.py    art-source <preview-dir>   inpainted lid skin, lids, 09_cup_oriented placement
   place_smile.py                             10_smile under the nose dots
   export_rig.py                              this file: trimmed WebP layers + rig.json
 """
@@ -27,8 +28,8 @@ from PIL import Image
 from scipy import ndimage
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SRC = os.path.join(ROOT, "src", "assets")
-OUT = os.path.join(SRC, "astra")
+SRC = os.path.join(ROOT, "art-source")                # artwork, kept out of git (see .gitignore)
+OUT = os.path.join(ROOT, "src", "assets", "astra")
 EXPORT_W = 500
 MARGIN = 0.08
 # The exported lid mask is the eye oval grown by this many source px: enough
