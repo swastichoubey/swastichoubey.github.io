@@ -18,12 +18,6 @@ references:
     url: 'https://arxiv.org/abs/2305.17493'
     kind: paper
     note: Foundational paper on model collapse in self-consuming training loops.
-  # FIXME: URL resolves to Rawson 2024, "Computing Tangent Spaces to Eigenvarieties", not a synthetic-data survey
-  - id: synthetic-data-survey
-    title: 'Survey: Synthetic Data for LLM Training'
-    url: 'https://arxiv.org/abs/2402.13799'
-    kind: paper
-    note: Comprehensive overview of synthetic data generation techniques and pitfalls.
   - id: graphite-2026-ai-articles
     title: AI Now Writes as Many Online Articles as Humans
     authors: Graphite

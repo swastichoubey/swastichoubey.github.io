@@ -24,10 +24,4 @@ references:
     url: 'https://arxiv.org/abs/1312.6199'
     kind: paper
     note: Szegedy et al. on adversarial examples transferring across architectures.
-  # FIXME: URL resolves to Shokri et al. 2016, "Membership Inference Attacks against Machine Learning Models", not a model-stealing paper
-  - id: model-stealing
-    title: Model Stealing via API Queries
-    url: 'https://arxiv.org/abs/1610.05820'
-    kind: paper
-    note: Black-box extraction attacks on commercial ML APIs.
 ---
