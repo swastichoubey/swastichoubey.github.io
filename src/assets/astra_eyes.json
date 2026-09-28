@@ -1,0 +1,101 @@
+{
+ "canvas": [
+  1536,
+  1024
+ ],
+ "note": "Pixel coordinates on the 1536x1024 source canvas. Clamp star (pupil) movement inside each oval; lids cover the top `frac` of an oval (0 open, 1 closed), edge sagging by lid_sag x oval height, grown by 2px past the oval so its rim is covered.",
+ "outline_rgb": [
+  1,
+  33,
+  40
+ ],
+ "outline_px": 13.0,
+ "lid_sag": 0.1,
+ "lid_rest_frac": 0.45,
+ "eyes": [
+  {
+   "name": "left",
+   "bbox": [
+    574,
+    331,
+    715,
+    481
+   ],
+   "centre": [
+    645.4,
+    406.6
+   ],
+   "semi_axes": [
+    76.8,
+    69.7
+   ],
+   "angle_deg": 65.1,
+   "area_px": 16815,
+   "skin_rgb": [
+    207,
+    231,
+    55
+   ],
+   "star": {
+    "size_px": [
+     35,
+     38
+    ],
+    "centre": [
+     624,
+     383
+    ],
+    "offset_frac": [
+     -0.3,
+     -0.32
+    ]
+   }
+  },
+  {
+   "name": "right",
+   "bbox": [
+    765,
+    401,
+    964,
+    542
+   ],
+   "centre": [
+    864.1,
+    472.0
+   ],
+   "semi_axes": [
+    100.5,
+    70.8
+   ],
+   "angle_deg": 172.3,
+   "area_px": 22346,
+   "skin_rgb": [
+    207,
+    231,
+    56
+   ],
+   "star": {
+    "size_px": [
+     50,
+     45
+    ],
+    "centre": [
+     834,
+     449
+    ],
+    "offset_frac": [
+     -0.3,
+     -0.32
+    ]
+   }
+  }
+ ],
+ "lid": {
+  "rest_frac": 0.45,
+  "sag": 0.1,
+  "grow_px": 3,
+  "sag_schedule": "sag * min(1, 3*frac) * (1 - clamp((frac-0.7)/0.3, 0, 1)^2)",
+  "line": "outline colour, outline_px wide, round caps, drawn along the part of the edge inside the grown oval",
+  "fill": "04_lid_skin.png (inpainted skin inside each oval grown by grow_px)"
+ }
+}
