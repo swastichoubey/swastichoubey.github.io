@@ -9,11 +9,13 @@ import { useReducedMotion } from "./useReducedMotion"
 // Rest:   gentle bob + tilt, lids at 45% (eye stars hidden), wavy mouth,
 //         sweat, drifting zzz, a blink every 4–8s.
 // Awake:  when the cursor comes within ~150px or Astra has keyboard focus —
-//         lids retract, zzz drifts up and fades, sweat fades, mouth swaps to
-//         surprise, the cup wiggles once, eye stars appear and track the cursor.
+//         lids retract, zzz drifts up and fades, sweat fades, mouth goes to
+//         surprise for ~1s then crossfades to a smile, the cup wiggles once,
+//         eye stars appear and track the cursor.
 //         Back to rest ~3s after the cursor leaves.
 // Click / Enter opens the About panel.
-// Reduced motion: no bob, blink or tracking; rest ↔ awake is an instant swap.
+// Reduced motion: no bob, blink or tracking; rest ↔ awake is an instant swap
+//         (straight to the smile, no surprise step).
 // Everything animates with CSS transforms and opacity.
 
 const urls = import.meta.glob("./assets/astra/*.webp", { eager: true, import: "default" })
@@ -29,6 +31,8 @@ const SLEEP_DELAY = 3000         // ms after the cursor leaves
 const TRACK_RANGE = 0.3          // stars move up to 30% of the oval's half-extent
 const BLINK_MS = 75              // each way
 const LID = { rest: rig.lid.rest_frac, closed: 1, open: 0 }
+const SURPRISE_MS = 1000         // surprise mouth on waking, then the smile
+const MOUTH_FADE = { wavy: 160, surprise: 160, smile: 200 }   // crossfade into each mouth
 const lineRGB = `rgb(${rig.lid.line_rgb.join(",")})`
 
 // Lid shutter: a box as tall as the eye plus its curved bottom (the lid edge,
@@ -83,6 +87,7 @@ export default function Astra({ onOpen }) {
   const [lid, setLid] = useState(LID.rest)
   const [lidMs, setLidMs] = useState(280)
   const [wiggle, setWiggle] = useState(0)             // bumps to replay the cup wiggle
+  const [mouth, setMouth] = useState("wavy")          // "wavy" | "surprise" | "smile"
   const rootRef = useRef(null)
   const starRefs = { left: useRef(null), right: useRef(null) }
   const pointer = useRef(null)                         // last cursor position (client px)
@@ -104,6 +109,11 @@ export default function Astra({ onOpen }) {
   useEffect(() => {
     setLidMs(reduced ? 0 : 280)
     setLid(awake ? LID.open : LID.rest)
+    if (!awake) { setMouth("wavy"); return }
+    if (reduced) { setMouth("smile"); return }
+    setMouth("surprise")
+    const t = setTimeout(() => setMouth("smile"), SURPRISE_MS)
+    return () => clearTimeout(t)
   }, [awake, reduced])
 
   // Distance from the cursor to Astra's drawn body (not the transparent margin)
@@ -221,8 +231,12 @@ export default function Astra({ onOpen }) {
               style={{ willChange: "transform", transitionDuration: fast }} />
           ))}
           {rig.eyes.map(eye => <Lid key={eye.name} eye={eye} frac={lid} durationMs={lidMs} />)}
-          <Layer name="wavy" className="astra-rest-only" style={{ transitionDuration: fast }} />
-          <Layer name="surprise" className="astra-awake-only" style={{ transitionDuration: fast }} />
+          {["wavy", "surprise", "smile"].map(m => (
+            <Layer key={m} name={m} style={{
+              opacity: mouth === m ? 1 : 0,
+              transition: `opacity ${reduced ? 0 : MOUTH_FADE[mouth]}ms ease`,
+            }} />
+          ))}
           <Layer name="sweat" className="astra-rest-only astra-sweat" style={{ transitionDuration: fast }} />
           <div className="astra-zzz" style={{ position: "absolute", inset: 0, transitionDuration: fast }}>
             <Layer name="zzz" className="astra-zzz-float" style={{ transformOrigin: origin("zzz") }} />
