@@ -69,7 +69,7 @@ function ReaderMascot({ size = 26 }) {
       src={astraReadingUrl}
       width={size} height={size}
       style={{ display: "block", objectFit: "contain" }}
-      alt="Hybridantic"
+      alt="Hybridlogs"
     />
   )
 }
@@ -138,7 +138,7 @@ function NavBar({ backLabel, onClose, isDark, onToggleTheme, gearOpen, onToggleG
         <span style={{
           fontFamily: "'DM Mono', monospace", fontSize: "17px", fontWeight: 600,
           letterSpacing: "0.02em", color: p.text,
-        }}>Hybridantic</span>
+        }}>Hybridlogs</span>
       </div>
 
       <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
