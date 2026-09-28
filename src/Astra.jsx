@@ -71,7 +71,7 @@ function Lid({ eye, frac, durationMs }) {
 
 // A full-frame layer (every exported layer shares the rig's frame)
 function Layer({ name, style, className, innerRef }) {
-  return <img ref={innerRef} src={src(name)} alt="" draggable={false} className={className}
+  return <img ref={innerRef} src={src(name)} alt="" draggable={false} className={className} data-layer={name}
     style={{ position: "absolute", inset: 0, width: "100%", height: "100%", ...style }} />
 }
 
