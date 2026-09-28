@@ -38,6 +38,17 @@
     22.26
    ]
   },
+  "smile": {
+   "file": "smile.webp",
+   "centre": [
+    246.65,
+    191.46
+   ],
+   "size": [
+    19.51,
+    9.76
+   ]
+  },
   "sweat": {
    "file": "sweat.webp",
    "centre": [

@@ -7,7 +7,7 @@ EXPORT_W wide and writes WebP layers to src/assets/astra/ plus rig.json with
 every position in export pixels.
 
 Full-frame layers (same size, stacked at 0,0): base, star_left, star_right,
-wavy, surprise, sweat, zzz, cup. Per-eye crops for the animated lids:
+wavy, surprise, smile, sweat, zzz, cup. Per-eye crops for the animated lids:
 eyemask_{left,right} (grown oval, used as a CSS mask) and lidskin_{left,right}
 (inpainted skin the lid is filled with).
 
@@ -17,6 +17,7 @@ Pipeline (Python 3 + numpy, scipy, Pillow; dev-only, not an npm dependency):
   place_stickers.py <assets> <preview-dir>   07 sweat / 08 zzz relative to 01_base
   build_face.py     <assets> <preview-dir>   eye ovals -> astra_eyes.json, stars, mouths, sweat on the temple
   build_face2.py    <assets> <preview-dir>   inpainted lid skin, lids, 09_cup_oriented placement
+  place_smile.py                             10_smile under the nose dots
   export_rig.py                              this file: trimmed WebP layers + rig.json
 """
 import json, os, warnings
@@ -42,6 +43,7 @@ layers = {
     "base": load("01_base.png"),
     "wavy": load("05_wavy_mouth_placed.png"),
     "surprise": load("06_surprise_mouth_placed.png"),
+    "smile": load("10_smile_placed.png"),
     "sweat": load("07_sweat_placed.png"),
     "zzz": load("08_zzz_placed.png"),
     "cup": load("09_cup_placed.png"),
