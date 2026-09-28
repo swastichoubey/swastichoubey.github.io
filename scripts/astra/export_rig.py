@@ -30,7 +30,10 @@ SRC = os.path.join(ROOT, "src", "assets")
 OUT = os.path.join(SRC, "astra")
 EXPORT_W = 500
 MARGIN = 0.08
-GROW = 3          # the lid region is the oval grown by this many source px (matches astra_eyes.json)
+# The exported lid mask is the eye oval grown by this many source px: enough
+# (~2.4 export px) that its soft edge lands on clean skin rather than on the
+# oval's dark anti-aliased rim, which would otherwise show as a faint ring.
+GROW = 8
 
 load = lambda n: Image.open(os.path.join(SRC, n)).convert("RGBA")
 geo = json.load(open(os.path.join(SRC, "astra_eyes.json")))
@@ -118,8 +121,14 @@ for e in eyes:
     m = Image.new("RGBA", (W, H), (255, 255, 255, 0))
     m.putalpha(Image.fromarray((e["grown"] * 255).astype(np.uint8)))
     box = tuple(round(v) for v in src_box)
-    for img, kind in ((m, "eyemask"), (lid_skin, "lidskin")):
-        save(resized(img.crop(box), (ex1 - ex0, ey1 - ey0)), f"{kind}_{e['name']}")
+    save(resized(m.crop(box), (ex1 - ex0, ey1 - ey0)), f"eyemask_{e['name']}")
+    # lid skin made fully opaque (edge colours extended outwards), so the oval
+    # mask alone defines the lid's edge — no second soft edge to show a ring
+    ls = np.array(lid_skin.crop(box))
+    inside = ls[..., 3] > 250
+    _, (iy, ix) = ndimage.distance_transform_edt(~inside, return_indices=True)
+    ls = ls[iy, ix]; ls[..., 3] = 255
+    save(Image.fromarray(ls, "RGBA").resize((ex1 - ex0, ey1 - ey0), Image.LANCZOS), f"lidskin_{e['name']}")
     a, b = e["semi_axes"]
     star = rig["layers"][f"star_{e['name']}"]
     rig["eyes"].append(dict(

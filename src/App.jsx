@@ -10,7 +10,6 @@ import { GridView } from "./GridView"
 import { Reader } from "./Reader"
 import { MobileView } from "./MobileView"
 import { blogData } from "./data"
-import { Astra } from "./Astra"
 import { AboutButton } from "./AboutButton"
 import { PlanetNav } from "./PlanetNav"
 import { useReducedMotion } from "./useReducedMotion"
@@ -35,6 +34,8 @@ const READER_BG = "#05050f"
 // The 3D scene (three, R3F, drei, postprocessing) is a separate chunk,
 // fetched only when the desktop universe actually renders.
 const Universe = lazy(() => import("./Universe"))
+// Astra's layered rig (images + rig data) is only needed on desktop too
+const Astra = lazy(() => import("./Astra"))
 
 function nodePassesFilter(node, filters) {
   const { clusters, types } = filters
@@ -161,6 +162,12 @@ export default function App() {
     setTimeout(() => setVeil(null), reducedMotion ? REDUCED_FADE_MS : FADE_OUT.duration * 1000)
   }
 
+  const openAbout = () => {
+    setSelected(null)
+    setAboutView("about")
+    setPanelHidden(false)
+  }
+
   const toggleAbout = () => {
     setSelected(null)
     setAboutView(v => v ? null : "about")
@@ -271,7 +278,9 @@ export default function App() {
           </AnimatePresence>
 
           <Legend />
-          <Astra />
+          <Suspense fallback={null}>
+            <Astra onOpen={openAbout} />
+          </Suspense>
           <AboutButton active={showAboutPanel} onClick={toggleAbout} />
           {!readerNodeId && <PlanetNav onFocusChange={setFocusedId} onRefFocusChange={setFocusedRef} onOpen={enterArticle} />}
         </>
