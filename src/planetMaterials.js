@@ -6,12 +6,34 @@
 //   opinion      → small emissive star (the only self-luminous type) + corona
 //   project      → rocky planet with a tilted ring
 // Planets are unit spheres scaled to their radius, so noise frequencies are
-// independent of size. Output is linear HDR: only star surfaces, coronas and
-// the rims of recent planets exceed the bloom threshold.
+// independent of size. Output is linear HDR, and only the star (surface and
+// corona) goes over the bloom threshold: every other body is capped below it,
+// so planet edges stay crisp instead of haloing.
 import * as THREE from "three"
 
 // World-space direction *towards* the single key light.
 export const KEY_LIGHT_DIR = new THREE.Vector3(1.0, 0.4, 0.1).normalize()
+
+// Bloom starts at this luminance (Scene's <Bloom luminanceThreshold>). Planets
+// and moons are capped at BLOOM_CEILING, safely under it.
+export const BLOOM_THRESHOLD = 0.85
+export const BLOOM_CEILING   = 0.75
+
+// Scales a colour down so its luminance never exceeds BLOOM_CEILING.
+// silhouetteAA: analytic antialiasing for a sphere's outline. N·V falls to 0
+// at the silhouette; dividing by its screen-space rate of change gives the
+// distance to the edge in pixels, so the outermost pixel fades out. Keeps
+// edges smooth when SMAA is off (above 1x, see Scene).
+export const UNDER_BLOOM = /* glsl */ `
+vec3 underBloom(vec3 col) {
+  float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+  return col * min(1.0, ${BLOOM_CEILING.toFixed(2)} / max(lum, 1e-4));
+}
+float silhouetteAA(vec3 N, vec3 V) {
+  float ndv = dot(N, V);
+  return clamp(ndv / max(fwidth(ndv), 1e-5), 0.0, 1.0);
+}
+`
 
 const NOISE = /* glsl */ `
 // Simplex 3D noise — Ashima Arts / Stefan Gustavson (MIT)
@@ -132,30 +154,35 @@ varying vec3 vObjPos;
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
 ${NOISE}
+${UNDER_BLOOM}
 
 // Key light + low ambient gives every planet a lit and a shadowed side.
-// The Fresnel rim is the atmosphere: strongest on the lit limb, still faintly
-// there on the night side, scaled by recency glow (and a touch on hover).
+// The Fresnel rim is the atmosphere: a thin line on the limb (strongest on
+// the lit side), scaled by recency glow and a touch on hover. It stays inside
+// the disc and under the bloom threshold, so the edge reads as a crisp line.
 vec3 lightPlanet(vec3 albedo, vec3 Ngeo, vec3 Nsurf, vec3 V) {
   float ndl = dot(Nsurf, uLightDir);
   float diffuse = clamp((ndl + 0.08) / 1.08, 0.0, 1.0);
   vec3 col = albedo * (0.045 + 0.9 * diffuse);
-  float fres = pow(1.0 - clamp(dot(Ngeo, V), 0.0, 1.0), 3.0);
+  float fres = pow(1.0 - clamp(dot(Ngeo, V), 0.0, 1.0), 4.5);
   float litSide = smoothstep(-0.35, 0.45, dot(Ngeo, uLightDir));
   vec3 atmo = mix(uColor, vec3(1.0), 0.2);
-  col += atmo * fres * (0.2 + 0.8 * litSide) * (0.5 + 2.6 * uGlow) * (1.0 + 0.6 * uHover);
-  return col;
+  col += atmo * fres * (0.15 + 0.85 * litSide) * (0.6 + 2.0 * uGlow) * (1.0 + 0.5 * uHover);
+  return underBloom(col);
 }
 
 vec3 toWorld(vec3 objDir) { return normalize(mat3(modelMatrix) * objDir); }
 `
 
 const FRAGMENT_TAIL = /* glsl */ `
-  gl_FragColor = vec4(col, uOpacity);
+  gl_FragColor = vec4(col, uOpacity * silhouetteAA(N, V));
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }
 `
+// The star skips silhouetteAA: its corona is drawn over the edge anyway, and
+// a faded edge pixel still writes depth, which punches dark dots in it.
+const STAR_TAIL = FRAGMENT_TAIL.replace("uOpacity * silhouetteAA(N, V)", "uOpacity")
 
 const SURFACES = {
   exploratory: /* glsl */ `
@@ -217,12 +244,13 @@ void main() {
   float gran = fbm(p * 9.0 + vec3(0.0, uTime * 0.06, uTime * 0.04)) * 0.5 + 0.5;
   float spots = fbm(p * 2.5 + uTime * 0.02) * 0.5 + 0.5;
   float limb = 0.55 + 0.45 * pow(clamp(dot(N, V), 0.0, 1.0), 0.6);
-  // Just bright enough at the centre to catch a little bloom: reads as a
-  // light source without becoming the scene's focal point.
+  // The only body over the bloom threshold, and only just: the centre
+  // catches a little bloom, so it reads as a light source without becoming
+  // the scene's focal point.
   vec3 hot = mix(uColor, vec3(1.0, 0.93, 0.78), 0.35);
   vec3 col = mix(uColor * 0.75, hot, gran) * limb * mix(0.82, 1.0, spots)
-           * (1.0 + 0.3 * uGlow) * (1.0 + 0.2 * uHover);
-${FRAGMENT_TAIL}`,
+           * 1.35 * (1.0 + 0.3 * uGlow) * (1.0 + 0.2 * uHover);
+${STAR_TAIL}`,
 }
 
 export function createPlanetMaterial(type, { color, glow, seed }) {
@@ -261,7 +289,10 @@ void main() {
   float t = (length(vObjPos.xy) - uInner) / (uOuter - uInner);
   float bands = 0.5 + 0.5 * snoise(vec3(t * 18.0, uSeed * 7.0, 0.0));
   bands = mix(bands, 0.5 + 0.5 * snoise(vec3(t * 55.0, uSeed * 3.0, 1.0)), 0.35);
-  float edges = smoothstep(0.0, 0.06, t) * smoothstep(1.0, 0.9, t);
+  // edge softness never under ~1.5px, so the band's edges stay smooth when
+  // the ring is seen nearly edge-on (and without SMAA)
+  float aa = fwidth(t) * 1.5;
+  float edges = smoothstep(0.0, max(0.06, aa), t) * smoothstep(1.0, 1.0 - max(0.1, aa), t);
   float gap = 1.0 - 0.8 * smoothstep(0.56, 0.59, t) * smoothstep(0.66, 0.63, t);
   float alpha = mix(0.2, 0.8, bands) * edges * gap;
 

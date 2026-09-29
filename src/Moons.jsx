@@ -4,7 +4,7 @@ import { Html } from "@react-three/drei"
 import * as THREE from "three"
 import { GRAPH } from "./graph.generated"
 import { planetRadius } from "./encoding"
-import { KEY_LIGHT_DIR } from "./planetMaterials"
+import { KEY_LIGHT_DIR, UNDER_BLOOM } from "./planetMaterials"
 
 // ─── Reference moons ─────────────────────────────────────────────────────────
 // Every citation of a visible article is a small moon orbiting that article's
@@ -82,6 +82,7 @@ varying vec3 vObj;
 varying float vSeed;
 varying float vAlpha;
 varying float vHover;
+${UNDER_BLOOM}
 
 float hash(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.yzx + 33.33); return fract((p.x + p.y) * p.z); }
 float vnoise(vec3 p) {
@@ -101,7 +102,7 @@ void main() {
   float diffuse = clamp((dot(N, uLightDir) + 0.1) / 1.1, 0.0, 1.0);
   float rim = pow(1.0 - clamp(dot(N, V), 0.0, 1.0), 2.5);
   vec3 col = albedo * (0.12 + 0.8 * diffuse) + vec3(0.75, 0.82, 0.95) * rim * (0.35 + 0.9 * vHover);
-  gl_FragColor = vec4(col, vAlpha);
+  gl_FragColor = vec4(underBloom(col), vAlpha * silhouetteAA(N, V));
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
 }

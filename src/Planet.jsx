@@ -111,7 +111,8 @@ export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fa
         {isFocused && (
           <Billboard>
             <mesh geometry={FOCUS_RING} scale={radius} raycast={noRaycast}>
-              <meshBasicMaterial color="#f8fafc" toneMapped={false} />
+              {/* light grey rather than white: stays under the bloom threshold */}
+              <meshBasicMaterial color="#d5dbe4" toneMapped={false} />
             </mesh>
           </Billboard>
         )}
