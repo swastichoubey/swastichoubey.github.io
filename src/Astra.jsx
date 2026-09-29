@@ -21,10 +21,19 @@ import { useReducedMotion } from "./useReducedMotion"
 const urls = import.meta.glob("./assets/astra/*.webp", { eager: true, import: "default" })
 const src = name => urls[`./assets/astra/${name}.webp`]
 
-const DISPLAY_W = 240
-const k = DISPLAY_W / rig.size[0]                     // export px → CSS px
-const DISPLAY_H = rig.size[1] * k
+// The rig is laid out at RIG_W CSS px wide, then scaled as a whole so the
+// drawn character (cup to body, without the frame's transparent margin) is
+// ~190px wide on a 1600px viewport, following the viewport between 150 and
+// 200px.
+const RIG_W = 240
+const k = RIG_W / rig.size[0]                         // export px → rig px
+const RIG_H = rig.size[1] * k
 const px = v => v * k
+const layerBoxes = Object.values(rig.layers)
+const ART_W = Math.max(...layerBoxes.map(l => l.centre[0] + l.size[0] / 2))
+            - Math.min(...layerBoxes.map(l => l.centre[0] - l.size[0] / 2))   // export px
+const artWidth = viewportW => Math.min(200, Math.max(150, viewportW * 190 / 1600))
+const scaleFor = viewportW => artWidth(viewportW) / px(ART_W)
 
 const WAKE_RADIUS = 150          // px from Astra's body
 const SLEEP_DELAY = 3000         // ms after the cursor leaves
@@ -95,6 +104,14 @@ export default function Astra({ onOpen }) {
   const sleepTimer = useRef(null)
   const awakeRef = useRef(false)
   awakeRef.current = awake
+  const [scale, setScale] = useState(() => scaleFor(window.innerWidth))
+  const scaleRef = useRef(scale)                       // rig px → screen px
+  useEffect(() => { scaleRef.current = scale }, [scale])
+  useEffect(() => {
+    const onResize = () => setScale(scaleFor(window.innerWidth))
+    window.addEventListener("resize", onResize)
+    return () => window.removeEventListener("resize", onResize)
+  }, [])
 
   // ── Wake / sleep ──────────────────────────────────────────────────────────
   const wake = useCallback(() => {
@@ -122,10 +139,10 @@ export default function Astra({ onOpen }) {
       pointer.current = { x: e.clientX, y: e.clientY }
       const el = rootRef.current
       if (!el) return
-      const r = el.getBoundingClientRect()
+      const r = el.getBoundingClientRect(), sp = v => px(v) * scaleRef.current
       const b = rig.layers.base
-      const bx0 = r.left + px(b.centre[0] - b.size[0] / 2), bx1 = r.left + px(b.centre[0] + b.size[0] / 2)
-      const by0 = r.top + px(b.centre[1] - b.size[1] / 2), by1 = r.top + px(b.centre[1] + b.size[1] / 2)
+      const bx0 = r.left + sp(b.centre[0] - b.size[0] / 2), bx1 = r.left + sp(b.centre[0] + b.size[0] / 2)
+      const by0 = r.top + sp(b.centre[1] - b.size[1] / 2), by1 = r.top + sp(b.centre[1] + b.size[1] / 2)
       const dx = Math.max(bx0 - e.clientX, 0, e.clientX - bx1)
       const dy = Math.max(by0 - e.clientY, 0, e.clientY - by1)
       if (Math.hypot(dx, dy) <= WAKE_RADIUS) wake()
@@ -172,7 +189,7 @@ export default function Astra({ onOpen }) {
         if (awakeRef.current && pointer.current && el) {
           const r = el.getBoundingClientRect()
           // direction from the eye to the cursor, full range beyond ~250px
-          const ex = r.left + px(eye.centre[0]), ey = r.top + px(eye.centre[1])
+          const ex = r.left + px(eye.centre[0]) * scaleRef.current, ey = r.top + px(eye.centre[1]) * scaleRef.current
           const vx = pointer.current.x - ex, vy = pointer.current.y - ey
           const d = Math.hypot(vx, vy) || 1
           const reach = Math.min(1, d / 250)
@@ -220,29 +237,31 @@ export default function Astra({ onOpen }) {
       onBlur={() => { focused.current = false; sleepSoon() }}
       style={{
         position: "fixed", left: "8px", bottom: "12px", zIndex: 20,
-        width: DISPLAY_W, height: DISPLAY_H, cursor: "pointer", userSelect: "none",
+        width: RIG_W * scale, height: RIG_H * scale, cursor: "pointer", userSelect: "none",
       }}
     >
-      <div className="astra-bob" style={{ position: "absolute", inset: 0, transformOrigin: origin("base", true) }}>
-        <div className="astra-tilt" style={{ position: "absolute", inset: 0, transformOrigin: origin("base", true) }}>
-          <Layer name="base" />
-          {rig.eyes.map(eye => (
-            <Layer key={eye.name} name={`star_${eye.name}`} innerRef={starRefs[eye.name]} className="astra-awake-only"
-              style={{ willChange: "transform", transitionDuration: fast }} />
-          ))}
-          {rig.eyes.map(eye => <Lid key={eye.name} eye={eye} frac={lid} durationMs={lidMs} />)}
-          {["wavy", "surprise", "smile"].map(m => (
-            <Layer key={m} name={m} style={{
-              opacity: mouth === m ? 1 : 0,
-              transition: `opacity ${reduced ? 0 : MOUTH_FADE[mouth]}ms ease`,
-            }} />
-          ))}
-          <Layer name="sweat" className="astra-rest-only astra-sweat" style={{ transitionDuration: fast }} />
-          <div className="astra-zzz" style={{ position: "absolute", inset: 0, transitionDuration: fast }}>
-            <Layer name="zzz" className="astra-zzz-float" style={{ transformOrigin: origin("zzz") }} />
+      <div style={{ position: "absolute", left: 0, top: 0, width: RIG_W, height: RIG_H, transform: `scale(${scale})`, transformOrigin: "0 0" }}>
+        <div className="astra-bob" style={{ position: "absolute", inset: 0, transformOrigin: origin("base", true) }}>
+          <div className="astra-tilt" style={{ position: "absolute", inset: 0, transformOrigin: origin("base", true) }}>
+            <Layer name="base" />
+            {rig.eyes.map(eye => (
+              <Layer key={eye.name} name={`star_${eye.name}`} innerRef={starRefs[eye.name]} className="astra-awake-only"
+                style={{ willChange: "transform", transitionDuration: fast }} />
+            ))}
+            {rig.eyes.map(eye => <Lid key={eye.name} eye={eye} frac={lid} durationMs={lidMs} />)}
+            {["wavy", "surprise", "smile"].map(m => (
+              <Layer key={m} name={m} style={{
+                opacity: mouth === m ? 1 : 0,
+                transition: `opacity ${reduced ? 0 : MOUTH_FADE[mouth]}ms ease`,
+              }} />
+            ))}
+            <Layer name="sweat" className="astra-rest-only astra-sweat" style={{ transitionDuration: fast }} />
+            <div className="astra-zzz" style={{ position: "absolute", inset: 0, transitionDuration: fast }}>
+              <Layer name="zzz" className="astra-zzz-float" style={{ transformOrigin: origin("zzz") }} />
+            </div>
+            <Layer key={wiggle} name="cup" className={wiggle && !reduced ? "astra-cup-wiggle" : ""}
+              style={{ transformOrigin: origin("cup", true) }} />
           </div>
-          <Layer key={wiggle} name="cup" className={wiggle && !reduced ? "astra-cup-wiggle" : ""}
-            style={{ transformOrigin: origin("cup", true) }} />
         </div>
       </div>
 
