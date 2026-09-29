@@ -10,7 +10,7 @@ import { labelHalfWidth } from "./clusterLabel"
 // in the default view's screen plane (right / up as seen along HOME_DIR),
 // with only a little depth jitter for parallax, so clusters can't overlap on
 // screen from the default view: Alignment right, Evals bottom (front),
-// Security left, Curiosities top (back). Each article orbits its cluster's
+// Security left, Detours top (back). Each article orbits its cluster's
 // name label (at the cluster centre) on a circle whose plane also faces the
 // default camera, tilted by at most ~3.4°, so planets within a cluster can't
 // overlap on screen either. The innermost orbit clears the label's
