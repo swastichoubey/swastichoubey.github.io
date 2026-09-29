@@ -13,6 +13,7 @@ import { useReducedMotion } from "./useReducedMotion"
 //         surprise for ~1s then crossfades to a smile, the cup wiggles once,
 //         eye stars appear and track the cursor.
 //         Back to rest ~3s after the cursor leaves.
+// Hover / focus: a speech bubble with one of DIALOGUES, the next one each time.
 // Click / Enter opens the About panel.
 // Reduced motion: no bob, blink or tracking; rest ↔ awake is an instant swap
 //         (straight to the smile, no surprise step).
@@ -32,6 +33,7 @@ const px = v => v * k
 const layerBoxes = Object.values(rig.layers)
 const ART_W = Math.max(...layerBoxes.map(l => l.centre[0] + l.size[0] / 2))
             - Math.min(...layerBoxes.map(l => l.centre[0] - l.size[0] / 2))   // export px
+const ART_TOP = Math.min(...layerBoxes.map(l => l.centre[1] - l.size[1] / 2))       // export px
 const artWidth = viewportW => Math.min(200, Math.max(150, viewportW * 190 / 1600))
 const scaleFor = viewportW => artWidth(viewportW) / px(ART_W)
 
@@ -43,6 +45,15 @@ const LID = { rest: rig.lid.rest_frac, closed: 1, open: 0 }
 const SURPRISE_MS = 1000         // surprise mouth on waking, then the smile
 const MOUTH_FADE = { wavy: 160, surprise: 160, smile: 200 }   // crossfade into each mouth
 const lineRGB = `rgb(${rig.lid.line_rgb.join(",")})`
+
+const DIALOGUES = [
+  "Currently working on the ARENA curriculum and applying to fellowships.",
+  "Just finished BlueDot Technical AI Safety. If you know a paper I should read, the contact form is right there.",
+  "Still figuring out why models forget things at the tails. Send help. Or papers.",
+  "Running on curiosity and white Monster. What flavour is that even?",
+]
+const BUBBLE_HIDE_MS = 250       // grace after the pointer leaves, so edges don't flicker
+const BUBBLE_LEFT = 12           // px from Astra's frame; the tail points at the head
 
 // Lid shutter: a box as tall as the eye plus its curved bottom (the lid edge,
 // drawn by the bottom border), slid down by translateY; the skin inside is
@@ -98,6 +109,22 @@ export default function Astra({ onOpen }) {
   const [wiggle, setWiggle] = useState(0)             // bumps to replay the cup wiggle
   const [mouth, setMouth] = useState("wavy")          // "wavy" | "surprise" | "smile"
   const rootRef = useRef(null)
+  const [line, setLine] = useState(null)              // DIALOGUES index while the bubble shows
+  const nextLine = useRef(0)
+  const bubbleTimer = useRef(null)
+  const bubbleShown = useRef(false)
+  const showBubble = () => {
+    clearTimeout(bubbleTimer.current)
+    if (bubbleShown.current) return
+    bubbleShown.current = true
+    setLine(nextLine.current)
+    nextLine.current = (nextLine.current + 1) % DIALOGUES.length
+  }
+  const hideBubble = () => {
+    clearTimeout(bubbleTimer.current)
+    bubbleTimer.current = setTimeout(() => { bubbleShown.current = false; setLine(null) }, BUBBLE_HIDE_MS)
+  }
+  useEffect(() => () => clearTimeout(bubbleTimer.current), [])
   const starRefs = { left: useRef(null), right: useRef(null) }
   const pointer = useRef(null)                         // last cursor position (client px)
   const focused = useRef(false)
@@ -230,16 +257,38 @@ export default function Astra({ onOpen }) {
       role="button"
       tabIndex={0}
       aria-label="About Swasti"
+      aria-describedby={line != null ? "astra-bubble" : undefined}
       className={`astra${awake ? " astra--awake" : ""}${reduced ? " astra--still" : ""}`}
       onClick={open}
       onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open() } }}
-      onFocus={() => { focused.current = true; wake() }}
-      onBlur={() => { focused.current = false; sleepSoon() }}
+      onFocus={() => { focused.current = true; wake(); showBubble() }}
+      onBlur={() => { focused.current = false; sleepSoon(); hideBubble() }}
+      onPointerEnter={showBubble}
+      onPointerLeave={() => { if (!focused.current) hideBubble() }}
       style={{
         position: "fixed", left: "8px", bottom: "12px", zIndex: 20,
         width: RIG_W * scale, height: RIG_H * scale, cursor: "pointer", userSelect: "none",
       }}
     >
+      {/* Speech bubble: outside the scaled rig, so its text stays full size.
+          Sits just above Astra's head, tail pointing down at it. */}
+      {line != null && (
+        <div id="astra-bubble" role="tooltip" className="astra-bubble" style={{
+          position: "absolute", left: BUBBLE_LEFT, bottom: `calc(100% - ${Math.round(px(ART_TOP) * scale)}px + 10px)`,
+          width: 220, padding: "10px 13px",
+          background: "rgba(6, 6, 18, 0.93)", border: "1px solid #1e3a5f", borderRadius: 10,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+          fontFamily: "'DM Mono', monospace", fontSize: 10, lineHeight: 1.65, letterSpacing: "0.02em",
+          color: "#94a3b8", pointerEvents: "none",
+        }}>
+          {DIALOGUES[line]}
+          <div style={{
+            position: "absolute", bottom: -7, left: Math.round(px(rig.layers.zzz.centre[0]) * scale) - BUBBLE_LEFT - 6, width: 12, height: 7,
+            background: "rgba(6, 6, 18, 0.93)", clipPath: "polygon(0 0, 100% 0, 50% 100%)",
+          }} />
+        </div>
+      )}
+
       <div style={{ position: "absolute", left: 0, top: 0, width: RIG_W, height: RIG_H, transform: `scale(${scale})`, transformOrigin: "0 0" }}>
         <div className="astra-bob" style={{ position: "absolute", inset: 0, transformOrigin: origin("base", true) }}>
           <div className="astra-tilt" style={{ position: "absolute", inset: 0, transformOrigin: origin("base", true) }}>
@@ -266,6 +315,9 @@ export default function Astra({ onOpen }) {
       </div>
 
       <style>{`
+        .astra-bubble { animation: astra-bubble-in 0.2s ease; }
+        @keyframes astra-bubble-in { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: none } }
+        .astra--still .astra-bubble { animation: none; }
         .astra:focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; border-radius: 14px; }
         .astra-bob  { animation: astra-bob 4.8s ease-in-out infinite; will-change: transform; }
         .astra-tilt { animation: astra-tilt 7.3s ease-in-out infinite; will-change: transform; }

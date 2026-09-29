@@ -34,13 +34,8 @@ export function Legend() {
         ))}
       </div>
 
-      <div style={{ marginTop: "10px", fontSize: "9px", color: HINT, letterSpacing: "0.06em", lineHeight: 1.6 }}>
-        size · read time<br />
-        glow · recency
-      </div>
-
       <div style={{ marginTop: "10px", fontSize: "10px", color: HINT, letterSpacing: "0.06em" }}>
-        drag · scroll · click
+        drag · scroll · hover · click
       </div>
     </div>
   )

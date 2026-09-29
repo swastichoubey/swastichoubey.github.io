@@ -28,6 +28,6 @@ export function AboutButton({ active, onClick }) {
         fontFamily: "'DM Mono', monospace", fontSize: "11px", letterSpacing: "0.08em",
         zIndex: 55, userSelect: "none",
       }}
-    >About</motion.button>
+    >About Me</motion.button>
   )
 }
