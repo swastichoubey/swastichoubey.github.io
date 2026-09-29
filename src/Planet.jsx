@@ -1,10 +1,10 @@
 import { useRef, useState, useMemo, useEffect } from "react"
-import { useFrame } from "@react-three/fiber"
+import { useFrame, useThree } from "@react-three/fiber"
 import { Html, Billboard } from "@react-three/drei"
 import * as THREE from "three"
 import { THEME, TYPE_LABELS } from "./theme"
 import { planetRadius, recencyGlow } from "./encoding"
-import { GRAPH } from "./graph.generated"
+import { moonRing, MOON_COUNT, MOON_HOVER_SCALE } from "./moonRing"
 import {
   createPlanetMaterial, createRingMaterial, createCoronaMaterial, RING_INNER, RING_OUTER,
 } from "./planetMaterials"
@@ -26,7 +26,8 @@ function seedFrom(id) {
 }
 
 const _center = new THREE.Vector3()
-const HAS_MOONS = new Set(GRAPH.citations.map(c => c.article))
+const _up     = new THREE.Vector3()
+const LABEL_GAP_PX = 4
 
 // livePos: a Vector3 the scene updates every frame (orbital drift)
 // onOpen: clicking a planet opens its article (App flies the camera in first)
@@ -34,6 +35,9 @@ export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fa
   const groupRef = useRef()
   const scaleRef = useRef()
   const spinRef  = useRef()
+  const labelRef = useRef()
+  const camera     = useThree(s => s.camera)
+  const viewHeight = useThree(s => s.size.height)
   const [hovered, setHovered] = useState(false)
 
   const color  = THEME[node.type]
@@ -77,6 +81,16 @@ export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fa
       corona.uniforms.uOpacity.value = u.uOpacity.value
       corona.uniforms.uTime.value = u.uTime.value
     }
+    // Label anchor: straight down the screen from the planet, just clear of
+    // the planet, or of its moon ring (moonRing.js) when it has moons
+    if (labelRef.current) {
+      const pxWorld = (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) / viewHeight
+        * livePos.distanceTo(camera.position)
+      const n = MOON_COUNT.get(node.id) ?? 0
+      let drop = radius * s
+      if (n) { const ring = moonRing(radius, n, pxWorld); drop = ring.radius + ring.moon * MOON_HOVER_SCALE }
+      labelRef.current.position.copy(_up.setFromMatrixColumn(camera.matrixWorld, 1)).multiplyScalar(-(drop + LABEL_GAP_PX * pxWorld))
+    }
   })
 
   const showLabel = !labelsHidden && (hovered || isSelected || isHighlighted || isFocused)
@@ -90,6 +104,7 @@ export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fa
             geometry={SPHERE}
             material={material}
             scale={radius}
+            userData={{ planet: true }}
             onClick={e => { e.stopPropagation(); onOpen(node) }}
             onPointerOver={e => { e.stopPropagation(); setHovered(true); onHoverChange?.(node.id); document.body.style.cursor = "pointer" }}
             onPointerOut={() => { setHovered(false); onHoverChange?.(null); document.body.style.cursor = "default" }}
@@ -121,27 +136,29 @@ export function Planet({ node, livePos, isSelected, isHighlighted, isFocused, fa
       {/* In-world label: constant size on screen, hanging down from just
           under the planet — or under its moon ring, when it has one — so it
           never covers the planet or its moons. */}
-      {showLabel && (
-        <Html position={[0, -(HAS_MOONS.has(node.id) ? radius * 1.6 + 1.0 : radius * 1.18), 0]} zIndexRange={[50, 60]} style={{ pointerEvents: "none" }}>
-          <div style={{
-            transform: "translate(-50%, 6px)",
-            width: "max-content", maxWidth: "240px",
-            padding: "5px 10px",
-            background: "rgba(9, 11, 26, 0.9)",
-            border: `1px solid ${color}55`,
-            borderRadius: "8px",
-            fontFamily: "'DM Mono', monospace",
-            textAlign: "center",
-          }}>
-            <div style={{ fontSize: "11px", color: "#f1f5f9", lineHeight: 1.35, letterSpacing: "0.02em" }}>
-              {node.title}
+      <group ref={labelRef}>
+        {showLabel && (
+          <Html zIndexRange={[50, 60]} style={{ pointerEvents: "none" }}>
+            <div style={{
+              transform: "translate(-50%, 6px)",
+              width: "max-content", maxWidth: "240px",
+              padding: "5px 10px",
+              background: "rgba(9, 11, 26, 0.9)",
+              border: `1px solid ${color}55`,
+              borderRadius: "8px",
+              fontFamily: "'DM Mono', monospace",
+              textAlign: "center",
+            }}>
+              <div style={{ fontSize: "11px", color: "#f1f5f9", lineHeight: 1.35, letterSpacing: "0.02em" }}>
+                {node.title}
+              </div>
+              <div style={{ fontSize: "9px", color: "#aab4c3", marginTop: "3px", letterSpacing: "0.08em" }}>
+                <span style={{ color }}>{TYPE_LABELS[node.type]}</span> · {node.date}
+              </div>
             </div>
-            <div style={{ fontSize: "9px", color: "#aab4c3", marginTop: "3px", letterSpacing: "0.08em" }}>
-              <span style={{ color }}>{TYPE_LABELS[node.type]}</span> · {node.date}
-            </div>
-          </div>
-        </Html>
-      )}
+          </Html>
+        )}
+      </group>
     </group>
   )
 }

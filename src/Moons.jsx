@@ -5,18 +5,18 @@ import * as THREE from "three"
 import { GRAPH } from "./graph.generated"
 import { planetRadius } from "./encoding"
 import { KEY_LIGHT_DIR, UNDER_BLOOM } from "./planetMaterials"
+import { moonRing, MOON_HOVER_SCALE } from "./moonRing"
 
 // ─── Reference moons ─────────────────────────────────────────────────────────
 // Every citation of a visible article is a small moon orbiting that article's
-// planet. Moons are hidden at rest and fade + scale in (~300ms) while their
-// planet is active (hovered, focused or selected). All moons share one
-// instanced draw call; a second, invisible and larger instanced mesh takes
-// the pointer events so a moon a few pixels wide is still easy to hit.
+// planet, evenly spaced on a camera-facing ring (see moonRing.js). Moons are
+// hidden at rest and fade + scale in (~300ms) while their planet is active
+// (hovered, focused or selected). All moons share one instanced draw call; a
+// second, invisible and larger instanced mesh takes the pointer events so a
+// moon a few pixels wide is still easy to hit. The pointer over any planet's
+// disc always belongs to that planet, never to a moon.
 // Hover shows title/authors/year; click opens the source in a new tab.
 
-const MOON_RADIUS = 0.17
-const HIT_RADIUS  = 0.4
-const MIN_MOON_PX = 7      // radius: moons never render smaller than ~14px across
 const ORBIT_SPEED = 0.12   // rad/s
 const SPHERE = new THREE.SphereGeometry(1, 20, 14)
 
@@ -34,15 +34,15 @@ function buildMoons(visibleIds, articlesById) {
   for (const id of visibleIds) {
     const refs = GRAPH.citations.filter(c => c.article === id).map(c => REFERENCES.get(c.reference))
     const R = planetRadius(articlesById.get(id).readTime)
-    const tilt = (seeded(id + ":moons") - 0.5) * 0.7
+    const start = seeded(id + ":moons") * Math.PI * 2
     refs.forEach((ref, k) => {
       moons.push({
         key: `${id}:${ref.id}`,
         article: id,
         ref,
-        radius: R * 1.6 + 0.35 + (k % 2) * 0.35,
-        phase: (k / refs.length) * Math.PI * 2,
-        inclination: tilt + (seeded(ref.id) - 0.5) * 0.2,
+        planetRadius: R,
+        count: refs.length,
+        phase: start + (k / refs.length) * Math.PI * 2,
       })
     })
   }
@@ -112,13 +112,12 @@ const _m = new THREE.Matrix4()
 const _q = new THREE.Quaternion()
 const _s = new THREE.Vector3()
 const _p = new THREE.Vector3()
+const _right = new THREE.Vector3()
+const _up = new THREE.Vector3()
 
-// Position of a moon relative to its planet at orbit time t.
-function moonOffset(moon, t, out) {
-  const a = moon.phase + t
-  const x = Math.cos(a) * moon.radius, z = Math.sin(a) * moon.radius
-  return out.set(x, -z * Math.sin(moon.inclination), z * Math.cos(moon.inclination))
-}
+// A pointer event on a moon's hit area that also passes through a planet's
+// disc belongs to the planet: the moon lets it through.
+const overPlanet = e => e.intersections.some(i => i.object.userData.planet)
 
 // isActive(articleId) → should this planet's moons show right now
 // onHoverChange(moon | null) → a moon gained / lost the pointer
@@ -177,18 +176,24 @@ export function Moons({ live, articles, isActive, focusedRef, onHoverChange, red
       vis.set(a.id, v + ((!suppressed && isActive(a.id) ? 1 : 0) - v) * k)
     }
 
+    _right.setFromMatrixColumn(camera.matrixWorld, 0)
+    _up.setFromMatrixColumn(camera.matrixWorld, 1)
     moons.forEach((moon, i) => {
       const v = vis.get(moon.article)
-      moonOffset(moon, orbitT.current, _p).add(live.get(moon.article))
+      const center = live.get(moon.article)
+      // Zoomed out, moons grow to stay MIN_MOON_PX in radius, and the ring
+      // widens with them (moonRing)
+      const ring = moonRing(moon.planetRadius, moon.count, unitsPerPx * center.distanceTo(camera.position))
+      const a = moon.phase + orbitT.current
+      _p.copy(center)
+        .addScaledVector(_right, Math.cos(a) * ring.radius)
+        .addScaledVector(_up, Math.sin(a) * ring.radius)
       const shown = v > 0.01
-      // Zoomed out, grow moons so they stay at least MIN_MOON_PX in radius
-      const minR = MIN_MOON_PX * unitsPerPx * _p.distanceTo(camera.position)
-      const r = Math.max(MOON_RADIUS, minR)
-      _s.setScalar(shown ? r * (0.4 + 0.6 * v) * (i === labelIndex ? 1.35 : 1) : 0)
+      _s.setScalar(shown ? ring.moon * (0.4 + 0.6 * v) * (i === labelIndex ? MOON_HOVER_SCALE : 1) : 0)
       _m.compose(_p, _q, _s)
       visualRef.current.setMatrixAt(i, _m)
       // Hidden moons get a zero-size hit sphere, so they can't be hovered
-      _s.setScalar(shown && v > 0.5 ? Math.max(HIT_RADIUS, r * 1.8) : 0)
+      _s.setScalar(shown && v > 0.5 ? ring.hit : 0)
       _m.compose(_p, _q, _s)
       hitRef.current.setMatrixAt(i, _m)
       alphaAttr.array[i] = v
@@ -200,6 +205,11 @@ export function Moons({ live, articles, isActive, focusedRef, onHoverChange, red
     hitRef.current.computeBoundingSphere()
     alphaAttr.needsUpdate = true
     hoverAttr.needsUpdate = true
+  })
+
+  // Dev-only handle for automated checks
+  useEffect(() => {
+    if (import.meta.env.DEV) window.__moons = { moons, visual: visualRef, hit: hitRef, orbitT }
   })
 
   const setHover = i => {
@@ -219,9 +229,14 @@ export function Moons({ live, articles, isActive, focusedRef, onHoverChange, red
         ref={hitRef}
         args={[SPHERE, hitMaterial, n]}
         frustumCulled={false}
-        onPointerMove={e => { e.stopPropagation(); setHover(e.instanceId) }}
+        onPointerMove={e => {
+          if (overPlanet(e)) return setHover(null)
+          e.stopPropagation()
+          setHover(e.instanceId)
+        }}
         onPointerOut={() => setHover(null)}
         onClick={e => {
+          if (overPlanet(e)) return
           e.stopPropagation()
           const url = moons[e.instanceId]?.ref.url
           if (url) window.open(url, "_blank", "noopener,noreferrer")
