@@ -14,12 +14,14 @@ import { AboutButton } from "./AboutButton"
 import { PlanetNav } from "./PlanetNav"
 import { useReducedMotion } from "./useReducedMotion"
 import { preloadArticle } from "./articleStore"
+import { highlightsWidth, PANEL_COLLAPSE_BELOW, TOPBAR_RIGHT } from "./chrome"
 
 const MOBILE_BREAKPOINT = 768
 
 // Space each right-hand panel takes from the viewport (width + its 24px
-// margin); the scene frames itself in what's left.
-const PANEL_INSET = { highlights: 296, info: 324, about: 344 }
+// margin); the scene frames itself in what's left. The highlights panel's
+// width follows the viewport (chrome.js).
+const PANEL_INSET = { info: 324, about: 344 }
 
 // Opening an article from the universe: the camera flies into the planet
 // (ENTER_MS), and over its last stretch the page fades to the reader's
@@ -61,10 +63,16 @@ function readableNode(id) {
 }
 
 export default function App() {
-  const [isMobile,      setIsMobile]      = useState(window.innerWidth < MOBILE_BREAKPOINT)
+  const [viewportW,     setViewportW]     = useState(window.innerWidth)
+  const isMobile = viewportW < MOBILE_BREAKPOINT
+  // Narrow desktop viewports keep the highlights panel folded to its tab
+  const narrow   = viewportW < PANEL_COLLAPSE_BELOW
   const [selected,      setSelected]      = useState(null)
   const [flyTarget,     setFlyTarget]     = useState(null)
-  const [panelHidden,   setPanelHidden]   = useState(false)
+  const [panelHidden,   setPanelHidden]   = useState(narrow)
+  // Crossing the narrow threshold folds the panel away, or brings it back
+  const [wasNarrow,     setWasNarrow]     = useState(narrow)
+  if (narrow !== wasNarrow) { setWasNarrow(narrow); setPanelHidden(narrow) }
   const [filters,       setFilters]       = useState({ clusters: new Set(), types: new Set() })
   const [aboutView,     setAboutView]     = useState(null)
   const [focusedId,     setFocusedId]     = useState(null)
@@ -95,7 +103,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    const onResize = () => setViewportW(window.innerWidth)
     window.addEventListener("resize", onResize)
     return () => window.removeEventListener("resize", onResize)
   }, [])
@@ -165,13 +173,13 @@ export default function App() {
   const openAbout = () => {
     setSelected(null)
     setAboutView("about")
-    setPanelHidden(false)
+    setPanelHidden(narrow)
   }
 
   const toggleAbout = () => {
     setSelected(null)
     setAboutView(v => v ? null : "about")
-    setPanelHidden(false)
+    setPanelHidden(narrow)
   }
 
   const handleFlyTo = nodeId => {
@@ -185,10 +193,10 @@ export default function App() {
     setPanelHidden(true)
   }
 
-  const handleCloseInfo  = () => { setSelected(null); setPanelHidden(false) }
+  const handleCloseInfo  = () => { setSelected(null); setPanelHidden(narrow) }
   const handleCloseAbout = () => {
     setAboutView(null)
-    setPanelHidden(false)
+    setPanelHidden(narrow)
   }
   const handleCloseReader = () => {
     setReaderNodeId(null)
@@ -200,15 +208,16 @@ export default function App() {
   }
 
   const handlePointerMissed = () => {
-    if (selected) { setSelected(null); setPanelHidden(false) }
+    if (selected) { setSelected(null); setPanelHidden(narrow) }
   }
 
   const showAboutPanel = !!aboutView
   const showInfoPanel  = !!selected && !showAboutPanel
   const showHighlights = !showAboutPanel && !showInfoPanel
+  const panelWidth = highlightsWidth(viewportW)
   const rightInset = showAboutPanel ? PANEL_INSET.about
     : showInfoPanel ? PANEL_INSET.info
-    : !panelHidden ? PANEL_INSET.highlights
+    : !panelHidden ? panelWidth + TOPBAR_RIGHT
     : 0
 
   if (isMobile) {
@@ -230,7 +239,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ width: "100vw", height: "100vh", background: "#05050f" }}>
+    <div style={{ width: "100%", height: "100vh", background: "#05050f" }}>
       {gridView ? (
         <GridView onRead={openReader} onClose={() => setGridView(false)} />
       ) : (
@@ -272,6 +281,7 @@ export default function App() {
                 onFlyTo={handleFlyTo}
                 onFilterChange={setFilters}
                 hidden={panelHidden}
+                width={panelWidth}
                 onHide={() => setPanelHidden(p => !p)}
               />
             )}
