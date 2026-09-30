@@ -13,7 +13,7 @@ import { planetRadius } from "./encoding"
 import { ClusterNames } from "./ClusterNames"
 import { Starfield } from "./Starfield"
 import { Nebulae } from "./Nebula"
-import { KEY_LIGHT_DIR } from "./planetMaterials"
+import { KEY_LIGHT_DIR, BLOOM_THRESHOLD } from "./planetMaterials"
 
 // Scratch vectors (avoid per-frame allocs)
 const _offset     = new THREE.Vector3()
@@ -36,23 +36,36 @@ function isSoftwareRenderer(gl) {
 }
 
 const MAX_DPR = Math.min(window.devicePixelRatio || 1, 2)
+// Pixel ratios to try, highest first: the device's own, then 1.25x as a
+// middle step (when the device is above it), then 1x.
+const DPR_STEPS = [...new Set([MAX_DPR, Math.min(MAX_DPR, 1.25), 1])]
+
+// Test hook, in dev and in builds made with VITE_QUALITY_PIN=1 only:
+// ?dpr=1.5&bloom=0 pins the quality level and turns the adaptive steps off.
+const PIN = (() => {
+  if (!import.meta.env.DEV && !import.meta.env.VITE_QUALITY_PIN) return null
+  const q = new URLSearchParams(window.location.search)
+  if (!q.has("dpr") && !q.has("bloom")) return null
+  return { dpr: q.has("dpr") ? +q.get("dpr") : 1, bloom: q.get("bloom") !== "0" }
+})()
 
 // Starts at 1x pixel ratio and steps up to the device's (capped at 2) only
-// after ~3s of sustained 55+ fps. If the higher ratio then can't hold 50fps
-// it drops back to 1x for good; a machine that can't hold 50fps at 1x loses
-// bloom instead. Never oscillates between levels within a session. Sampling
+// after ~3s of sustained 55+ fps. If that ratio then can't hold 50fps it
+// steps down through DPR_STEPS (e.g. 1.5x → 1.25x → 1x), never going back
+// up; a machine that can't hold 50fps at 1x loses bloom instead. Sampling
 // starts after a short warm-up so shader compilation doesn't count.
 function useAdaptiveQuality() {
   const { gl, setDpr } = useThree()
   const dpr = useThree(s => s.viewport.dpr)
-  const [bloom, setBloom] = useState(() => !isSoftwareRenderer(gl))
+  const [bloom, setBloom] = useState(() => PIN ? PIN.bloom : !isSoftwareRenderer(gl))
   const [monitoring, setMonitoring] = useState(false)
-  const q = useRef({ steppedUp: false, locked: false })
+  const q = useRef({ steppedUp: false, locked: false })   // locked: no more stepping up
 
   useEffect(() => {
+    if (PIN) { setDpr(PIN.dpr); return }
     const t = setTimeout(() => setMonitoring(true), 1500)
     return () => clearTimeout(t)
-  }, [])
+  }, [setDpr])
 
   const onIncline = () => {
     if (q.current.steppedUp || q.current.locked || MAX_DPR <= 1) return
@@ -60,9 +73,10 @@ function useAdaptiveQuality() {
     setDpr(MAX_DPR)
   }
   const onDecline = () => {
-    if (q.current.steppedUp && !q.current.locked) { q.current.locked = true; setDpr(1); return }
     q.current.locked = true
-    setBloom(false)
+    const lower = DPR_STEPS.find(d => d < dpr)
+    if (lower) setDpr(lower)
+    else setBloom(false)
   }
 
   // Current quality level, readable from devtools or tests: data-quality on <canvas>
@@ -121,6 +135,21 @@ function computeHome(clusters, camera, width, height, inset) {
 
 const MIN_DISTANCE = 3   // closest manual zoom
 
+// Bloom at half resolution: the bright-pass and the top of the mip chain
+// normally run at full size, which at 1.5x is most of bloom's cost. Glow is
+// soft by nature, so rendering it at half size loses nothing visible (the
+// scene itself stays at full resolution). postprocessing has no option for
+// this with mipmap blur, so the passes' setSize is wrapped once.
+const halved = new WeakSet()
+function halfResolutionBloom(effect) {
+  if (halved.has(effect)) return
+  halved.add(effect)
+  effect.luminancePass.resolution.scale = 0.5
+  const mip = effect.mipmapBlurPass
+  const setSize = mip.setSize.bind(mip)
+  mip.setSize = (w, h) => setSize(Math.round(w / 2), Math.round(h / 2))
+}
+
 const easeInOutCubic = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 const easeOutQuint   = t => 1 - Math.pow(1 - t, 5)
 
@@ -138,7 +167,11 @@ export function Scene({
   // CSS size changes, not its pixel ratio — without this, dropping to 1x
   // still renders bloom at the old resolution and saves nothing.
   const composerRef = useRef()
-  useEffect(() => { composerRef.current?.setSize(size.width, size.height) }, [dpr, size])
+  const bloomRef = useRef()
+  useEffect(() => {
+    if (bloomRef.current) halfResolutionBloom(bloomRef.current)
+    composerRef.current?.setSize(size.width, size.height)
+  }, [dpr, size, bloom])
 
   // ── Orbital drift ─────────────────────────────────────────────────────────
   // One Vector3 per visible planet, updated in place every frame; planets,
@@ -280,7 +313,7 @@ export function Scene({
 
   // Dev-only handle for automated checks
   useEffect(() => {
-    if (import.meta.env.DEV) window.__universe = { camera, controls: controlsRef, live, drift, layout, homeRef, tween }
+    if (import.meta.env.DEV) window.__universe = { camera, controls: controlsRef, live, drift, layout, homeRef, tween, bloom: bloomRef }
   })
 
   const connectedIds = useMemo(() => {
@@ -401,16 +434,18 @@ export function Scene({
         <PerformanceMonitor iterations={12} bounds={() => [50, 55]} onIncline={onIncline} onDecline={onDecline} />
       )}
 
-      {/* Bloom only catches HDR values: star surfaces, coronas and the rims
-          of recent planets. Lit surfaces stay below the threshold, so
-          planets keep crisp edges instead of turning into blurry blobs.
-          SMAA instead of MSAA: 4x multisampling on the half-float buffers
-          cost ~12fps on an Intel UHD 620; SMAA costs ~0. */}
+      {/* Bloom only catches the star (surface and corona): planets and moons
+          are capped under the threshold (planetMaterials.js), so they keep
+          crisp edges instead of turning into blurry blobs.
+          Antialiasing: SMAA at 1x only. Its three full-screen passes cost
+          ~20fps at 1.5x on an Intel UHD 620, and above 1x the planet and
+          moon shaders' own silhouette antialiasing is enough. (4x MSAA on
+          the half-float buffers cost ~12fps even at 1x.) */}
       {bloom && (
         <EffectComposer ref={composerRef} multisampling={0}>
-          <Bloom mipmapBlur luminanceThreshold={0.85} luminanceSmoothing={0.2} intensity={0.9} radius={0.6} />
+          <Bloom ref={bloomRef} mipmapBlur levels={6} luminanceThreshold={BLOOM_THRESHOLD} luminanceSmoothing={0.2} intensity={1.6} radius={0.6} />
           <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-          <SMAA />
+          {dpr <= 1 ? <SMAA /> : null}
         </EffectComposer>
       )}
     </>

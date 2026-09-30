@@ -164,7 +164,7 @@ function convertBlock(node) {
 // articles) and gets no reader entry.
 
 const TYPES = ["exploratory", "experimental", "opinion", "project"]
-const CLUSTERS = ["Alignment", "Evals", "Control", "Security", "Curiosities"]
+const CLUSTERS = ["Alignment", "Evals", "Control", "Security", "Detours"]
 const REFERENCE_KINDS = ["paper", "web"]
 
 const warnings = []

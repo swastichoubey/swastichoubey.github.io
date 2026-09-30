@@ -92,7 +92,7 @@ function HighlightCard({ node, onSelect, onFlyTo }) {
   )
 }
 
-export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onHide }) {
+export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onHide, width }) {
   const [activeClusters, setActiveClusters] = useState(new Set())
   const [activeTypes,    setActiveTypes]    = useState(new Set())
   const [showTooltip, setShowTooltip] = useState(true)
@@ -148,7 +148,7 @@ export function HighlightsPanel({ onSelect, onFlyTo, onFilterChange, hidden, onH
       transition={SPRING.panel}
       style={{
         position: "fixed", top: `${PANEL_TOP}px`, right: `${TOPBAR_RIGHT}px`,
-        width: "272px", maxHeight: `calc(100vh - ${PANEL_TOP + TOPBAR_TOP}px)`, overflowY: "auto",
+        width: `${width}px`, maxHeight: `calc(100vh - ${PANEL_TOP + TOPBAR_TOP}px)`, overflowY: "auto",
         ...withoutBlur(glassPanel("#64748b"), OPAQUE),
         padding: `${PANEL_PADDING}px`, fontFamily: "'DM Mono', monospace",
         zIndex: 50, scrollbarWidth: "none",

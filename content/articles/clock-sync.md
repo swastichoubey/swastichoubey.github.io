@@ -3,7 +3,7 @@ title: Automatic Synchronisation of Clocks and Devices
 date: 2023-04
 readTime: 6
 type: exploratory
-cluster: Curiosities
+cluster: Detours
 tags:
   - Research
 excerpt: 'Watching clocks flip at midnight during Daylight Savings Time led to a genuine question: how does every device just know? NTP, GPS atomic clocks, stratum hierarchies, and why this matters beyond phones.'
